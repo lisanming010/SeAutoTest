@@ -47,4 +47,5 @@ driver = driver_set_up(url)
 
 logger = logger_set_up('test_vm')
 test_vm_create.run_test(driver, logger)
+print("test")
 driver.close()
