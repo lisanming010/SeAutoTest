@@ -8,6 +8,7 @@ requests = "*"
 pytest = "*"
 selenium = "*"
 selenium-wire = "*"
+allure-pytest = "*"
 
 [dev-packages]
 
