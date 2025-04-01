@@ -14,7 +14,6 @@ def run_test(driver, logger):
     run_login(driver, logger)
     elements_selector = InstanceList(driver, logger)
     comput_button = elements_selector.compute_button()
-    # driver.get('https://10.16.204.131/bcs/console/#/hci/compute/instance-list')
     ActionChains(driver).click(comput_button).perform()
     vm_list = elements_selector.select_vm_list('i-005d26e5d2')
     ActionChains(driver).move_to_element(vm_list).click(vm_list).perform()
@@ -24,5 +23,4 @@ def run_test(driver, logger):
     ActionChains(driver).move_to_element(remote_login).perform()
     remote_login_vnc = elements_selector.remote_vnc_head_button()
     remote_login_vnc.click()
-    # ActionChains(driver).click(more_act).click(vm_list).click(remote_login).click(remote_login_vnc).perform()
     sleep(10)
