@@ -10,7 +10,7 @@ from time import sleep
 #     login_button = elements_selector.login_button()
 #     ActionChains(driver).click(username_input).send_keys('admin').click(passwd_input).send_keys('Pass@admin2024').click(login_button).perform()
 
-def run_test(driver, logger):
+def test_run(driver, logger):
     # run_login(driver, logger)
     elements_selector = InstanceList(driver, logger)
     comput_button = elements_selector.compute_button()
