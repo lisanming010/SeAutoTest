@@ -170,7 +170,7 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-.logs/
+logs/
 .result/
 result/
 result/6c30e101-6ee0-4059-b3e6-677e65b02ae3-container.json
