@@ -13,12 +13,11 @@ def init_logger():
     return logger
 
 _driver = ''
-_logger = ''
+_logger = init_logger()
 
 @pytest.fixture(scope="function")
 def driver_init():
     global _driver, _logger
-    _logger = init_logger()
     _logger.info("开始初始化WebDriver...")
     
     edge_options = webdriver.EdgeOptions()
@@ -45,7 +44,7 @@ def login_driver(driver_init):
     """
     global _driver, _logger
     if _driver == '':        #  防止多次初始化webdriver
-        _driver, _logger = driver_init   
+        _driver, _ = driver_init   
     
     try:
         _driver.get('https://10.16.204.131')
