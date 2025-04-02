@@ -9,6 +9,7 @@ pytest = "*"
 selenium = "*"
 selenium-wire = "*"
 allure-pytest = "*"
+pytest-xdist = "*"
 
 [dev-packages]
 

@@ -12,31 +12,60 @@ def init_logger():
     logger = logger.logger()
     return logger
 
-@pytest.fixture(scope="session", autouse=True)
-def init_driver():
-    edge_options = webdriver.EdgeOptions()
+_driver = ''
+_logger = ''
 
-    edge_options.add_argument('--ignore-certificate-errors')  #忽略ssl证书错误
+@pytest.fixture(scope="function")
+def driver_init():
+    global _driver, _logger
+    _logger = init_logger()
+    _logger.info("开始初始化WebDriver...")
+    
+    edge_options = webdriver.EdgeOptions()
+    edge_options.add_argument('--ignore-certificate-errors')
     edge_options.add_argument('--ignore-ssl-errors')
     edge_options.add_experimental_option('excludeSwitches', ['enable-logging'])
-    driver = webdriver.Edge(options=edge_options)
-    driver.implicitly_wait(10)
-    logging.info("driver 初始化成功！")
+    
+    _driver = webdriver.Edge(options=edge_options)
+    _driver.implicitly_wait(10)
+    _logger.info("WebDriver初始化成功！")
 
-    yield driver
+    yield _driver, _logger  # 返回driver对象
 
-    driver.close()
+    # 测试会话结束后的清理操作
+    _logger.info("关闭WebDriver...")
+    _driver.close()
 
-@pytest.fixture()
-def login(request):
-    driver = init_driver()
-    logger = init_logger()
+@pytest.fixture(scope="function")
+def login_driver(driver_init):
+    """
+    function级别的登录夹具
+    依赖于driver_init夹具
+    每个测试函数执行时都会运行一次
+    """
+    global _driver, _logger
+    if _driver == '':        #  防止多次初始化webdriver
+        _driver, _logger = driver_init   
+    
+    try:
+        _driver.get('https://10.16.204.131')
+        elements_selector = LoginPageEles(_driver, _logger)
+        username_input = elements_selector.user_name_input()
+        passwd_input = elements_selector.passwd_input()
+        login_button = elements_selector.login_button()
+        
+        ActionChains(_driver).click(username_input)\
+            .send_keys('admin')\
+            .click(passwd_input)\
+            .send_keys('Pass@admin2024')\
+            .click(login_button)\
+            .perform()
+        
+        sleep(10)
+        _logger.info("登录成功")
+        
+    except Exception as e:
+        _logger.error(f"登录失败: {str(e)}")
+        raise e
 
-    driver.get('https://10.16.204.131')
-    elements_selector = LoginPageEles(driver, logger)
-    username_input = elements_selector.user_name_input()
-    passwd_input = elements_selector.passwd_input()
-    login_button = elements_selector.login_button()
-    ActionChains(driver).click(username_input).send_keys('admin').click(passwd_input).send_keys('Pass@admin2024').click(login_button).perform()
-    sleep(10)
-    return driver, logger
+    return _driver, _logger

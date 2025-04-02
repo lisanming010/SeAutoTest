@@ -11,9 +11,8 @@ from time import sleep
 #     ActionChains(driver).click(username_input).send_keys('admin').click(passwd_input).send_keys('Pass@admin2024').click(login_button).perform()
 
 
-def test_run(login):
-    # run_login(driver, logger)
-    driver, logger = login
+def test_run(login_driver):
+    driver, logger = login_driver
     elements_selector = InstanceList(driver, logger)
     comput_button = elements_selector.compute_button()
     ActionChains(driver).click(comput_button).perform()
