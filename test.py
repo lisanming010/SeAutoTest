@@ -31,4 +31,5 @@ from utils.confing_handle import HandleConfig
 #     print("error")
 
 conf_reader = HandleConfig('setting.ini')
-conf_reader.conf_write(conf_file_name='test.ini')
+# conf_reader.conf_write(conf_file_name='test.ini')
+print(conf_reader.read_section('global'))
