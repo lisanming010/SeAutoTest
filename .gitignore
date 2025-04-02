@@ -174,3 +174,4 @@ logs/
 .result/
 result/
 test.py
+.test.py

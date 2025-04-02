@@ -4,6 +4,11 @@ from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from pages_selector.page_login import LoginPageEles
 from utils.log_handle.log_handle import LoggerSetUp
+from utils.confing_handle import HandleConfig
+
+def init_conf_reader():
+    conf_handler = HandleConfig('setting.ini')
+    return conf_handler
 
 def init_logger():
     logger = LoggerSetUp('test_log_pytest')

@@ -6,7 +6,6 @@ from time import sleep
 
 def test_run(driver_init):
     driver , logger= driver_init
-    driver.get('https://10.16.204.131')
     elements_selector = LoginPageEles(driver, logger)
     username_input = elements_selector.user_name_input()
     passwd_input = elements_selector.passwd_input()
