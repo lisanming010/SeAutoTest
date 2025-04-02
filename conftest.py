@@ -1,5 +1,4 @@
 import pytest
-import logging
 from time import sleep
 from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
@@ -31,19 +30,14 @@ def driver_init():
 
     yield _driver, _logger  # 返回driver对象
 
-    # 测试会话结束后的清理操作
+    # 释放webdriver
     _logger.info("关闭WebDriver...")
     _driver.close()
 
 @pytest.fixture(scope="function")
 def login_driver(driver_init):
-    """
-    function级别的登录夹具
-    依赖于driver_init夹具
-    每个测试函数执行时都会运行一次
-    """
     global _driver, _logger
-    if _driver == '':        #  防止多次初始化webdriver
+    if _driver == '':        # 避免重复初始化webdriver
         _driver, _ = driver_init   
     
     try:
@@ -60,7 +54,7 @@ def login_driver(driver_init):
             .click(login_button)\
             .perform()
         
-        sleep(10)
+        sleep(3)
         _logger.info("登录成功")
         
     except Exception as e:

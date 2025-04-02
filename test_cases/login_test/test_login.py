@@ -4,12 +4,6 @@ from selenium.webdriver.common.action_chains import ActionChains
 from pages_selector.page_login import LoginPageEles
 from time import sleep
 
-
-# class TestLogin:
-#     @pytest.mark.smock
-#     def login(self):
-#         pass
-
 def test_run(driver_init):
     driver , logger= driver_init
     driver.get('https://10.16.204.131')
