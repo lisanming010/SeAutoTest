@@ -1,5 +1,4 @@
 import pytest
-from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from pages_selector.page_login import LoginPageEles
 from time import sleep
