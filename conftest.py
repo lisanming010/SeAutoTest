@@ -6,9 +6,8 @@ from pages_selector.page_login import LoginPageEles
 from utils.log_handle.log_handle import LoggerSetUp
 from utils.confing_handle import HandleConfig
 
-def init_conf_reader():
-    conf_handler = HandleConfig('setting.ini')
-    return conf_handler
+_driver = ''
+_conf_handler = HandleConfig('setting.ini')
 
 def init_logger():
     logger = LoggerSetUp('test_log_pytest')
@@ -16,7 +15,6 @@ def init_logger():
     logger = logger.logger()
     return logger
 
-_driver = ''
 _logger = init_logger()
 
 @pytest.fixture(scope="function")
@@ -25,8 +23,9 @@ def driver_init():
     _logger.info("开始初始化WebDriver...")
     
     edge_options = webdriver.EdgeOptions()
-    edge_options.add_argument('--ignore-certificate-errors')
-    edge_options.add_argument('--ignore-ssl-errors')
+    if _conf_handler.get_bool('global', 'ignore_ssl_error'):
+        edge_options.add_argument('--ignore-certificate-errors')
+        edge_options.add_argument('--ignore-ssl-errors')
     edge_options.add_experimental_option('excludeSwitches', ['enable-logging'])
     
     _driver = webdriver.Edge(options=edge_options)
@@ -46,16 +45,19 @@ def login_driver(driver_init):
         _driver, _ = driver_init   
     
     try:
-        _driver.get('https://10.16.204.131')
+        env_url = _conf_handler.get_value_str('env', 'env_url')
+        username = _conf_handler.get_value_str('env', 'username')
+        passwd = _conf_handler.get_value_str('env', 'password')
+        _driver.get(env_url)
         elements_selector = LoginPageEles(_driver, _logger)
         username_input = elements_selector.user_name_input()
         passwd_input = elements_selector.passwd_input()
         login_button = elements_selector.login_button()
         
         ActionChains(_driver).click(username_input)\
-            .send_keys('admin')\
+            .send_keys(username)\
             .click(passwd_input)\
-            .send_keys('Pass@admin2024')\
+            .send_keys(passwd)\
             .click(login_button)\
             .perform()
         
