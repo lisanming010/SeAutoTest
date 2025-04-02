@@ -173,6 +173,4 @@ cython_debug/
 logs/
 .result/
 result/
-result/6c30e101-6ee0-4059-b3e6-677e65b02ae3-container.json
-result/6e3e1e55-dff2-402b-a081-0f86899e1ef2-result.json
-result/59f5cce9-42a5-4f6a-81d4-c5e016f957f9-attachment.txt
+test.py

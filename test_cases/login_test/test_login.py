@@ -12,4 +12,4 @@ def test_run(driver_init):
     passwd_input = elements_selector.passwd_input()
     login_button = elements_selector.login_button()
     ActionChains(driver).click(username_input).send_keys('admin').click(passwd_input).send_keys('Pass@admin2024').click(login_button).perform()
-    sleep(10)
+    
