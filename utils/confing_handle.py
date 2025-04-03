@@ -27,12 +27,13 @@ class HandleConfig:
         return ast.literal_eval(self.conf.get(section, option))
     
     def conf_write(self, conf_file_name='pytest.ini', section='pytest'):
-        '''
+        """
         从setting中提取pytest section生成新pytest.ini配置文件
 
         : conf_file_name 新配置文件名称
         : section setting文件中section区域
-        '''
+        """
+        
         conf_new= configparser.RawConfigParser()
         optins = self.read_section(section)
         conf_new.add_section(section)
