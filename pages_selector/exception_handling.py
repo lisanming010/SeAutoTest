@@ -15,7 +15,7 @@ def ele_selector_exception_handing(func):
         except configparser.NoOptionError as e:
             logger.error(f"配置文件读取失败：{e}")
         except Exception as e:
-            logger.error(f"元素定位错误：{e}")
+            logger.error(f"捕获错误：{e}")
         else:
             logger.info(f"元素定位成功！")
             return ele_selector

@@ -24,7 +24,7 @@ class FindEles:
         """
         设置配置文件读取
         """
-        conf_path = os.path.join(self._get_file_path(), 'element_locating.ini')
+        conf_path = os.path.join(self._get_file_path(), 'element_locating.ini') #配置文件路径拼接
         if not os.path.exists(conf_path):
             self.logger.error('element_locating.ini配置文件不存在')
             raise FileNotFoundError
@@ -41,9 +41,12 @@ class FindEles:
         :ele_find_by: 元素定位方式，需要与element_locating.ini中元素option对应，不指定时默认使用ele_name+find_by拼接
         """
         conf_handler = self._config_handler()
-        ele_find_by = conf_handler.get_value_str(page_local, f'{ele_name}_find_by')
+        if ele_find_by == '':
+            ele_find_by = conf_handler.get_value_str(page_local, f'{ele_name}_find_by')
         if ele_find_by == "XPATH": #TODO：根据后续实际需求添加其他定位方式
             ele_find_path = conf_handler.get_value_str(page_local, ele_name)
             ele = self.driver.find_element(By.XPATH, ele_find_path)
             return ele
+        else:
+            raise ('未定义的定位方式')
 
