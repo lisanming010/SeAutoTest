@@ -106,6 +106,5 @@ class InstanceList(InstancePageEles):
 
     @exception_handling.ele_selector_exception_handing
     def select_vm_list(self, row_id):
-        # select_vm_list = self.driver.find_element(By.XPATH, f"//tr[@rowid='i-005d26e5d2']//span[@class='vxe-cell--checkbox']")
         select_vm_list = self.driver.find_element(By.XPATH, f"//tr[@rowid='{row_id}']")
         return select_vm_list
