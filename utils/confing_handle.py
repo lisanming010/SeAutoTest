@@ -25,7 +25,11 @@ class HandleConfig:
         return ast.literal_eval(self.conf.get(section, option))
     
     def conf_write(self, section, options):
-        
+        """
+        写ini配置文件
+        :section section
+        :options list[tuple(option, value)]
+        """
         if self.conf.has_section(section):
             self.conf.remove_section(section)
         self.conf.add_section(section)
@@ -36,7 +40,11 @@ class HandleConfig:
             self.conf.write(f)
 
     def update_conf(self, section, options):
-        
+        """
+        更新配置文件
+        :section section
+        :options list[tuple(option, value)]
+        """
         if not self.conf.has_section(section):
             self.conf.add_section(section)
         for option, value in options:
