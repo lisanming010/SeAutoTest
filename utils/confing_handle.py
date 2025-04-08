@@ -9,6 +9,12 @@ class HandleConfig:
         if os.path.exists(filename):
             self.conf.read(self.filename, encoding='UTF-8')
 
+    def has_section(self, section):
+        return self.conf.has_section(section)
+    
+    def has_option(self, section, option):
+        return self.conf.has_option(section, option)
+
     def read_section(self, section):
         return self.conf.items(section)
 
