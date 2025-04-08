@@ -52,9 +52,9 @@ def login_driver(driver_init):
     elements_selector = FindEles(_driver, _logger)
 
     try: # 登入环境
-        username_input = elements_selector.find_eles('login', 'username_input')
-        passwd_input = elements_selector.find_eles('login', 'password_input')
-        login_button = elements_selector.find_eles('login', 'login_button')
+        username_input = elements_selector.find_ele('login', 'username_input')
+        passwd_input = elements_selector.find_ele('login', 'password_input')
+        login_button = elements_selector.find_ele('login', 'login_button')
         ActionChains(_driver).click(username_input)\
             .send_keys(username)\
             .click(passwd_input)\
@@ -72,9 +72,9 @@ def login_driver(driver_init):
     yield _driver, _logger
 
     try: # teardown 登出系统
-        user_info_ele = elements_selector.find_eles('page_head_index', 'head_user_info')
+        user_info_ele = elements_selector.find_ele('page_head_index', 'head_user_info')
         ActionChains(_driver).move_to_element(user_info_ele).perform()
-        logout = elements_selector.find_eles('page_head_index', 'head_user_info_logout')
+        logout = elements_selector.find_ele('page_head_index', 'head_user_info_logout')
         ActionChains(_driver).click(logout).perform()
         _logger.info("退出登陆成功！")
         

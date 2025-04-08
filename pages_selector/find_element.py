@@ -32,7 +32,7 @@ class FindEles:
         return conf_handler
 
     @exception_handling.ele_selector_exception_handing
-    def find_eles(self, page_local, ele_name, ele_find_by='XPATH'):
+    def find_ele(self, page_local, ele_name, ele_find_by='XPATH'):
         """
         选择元素，返回元素选择器
 
