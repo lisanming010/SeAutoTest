@@ -2,9 +2,9 @@ import pytest
 from time import sleep
 from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
-from pages_selector.page_login import LoginPageEles
 from utils.log_handle.log_handle import LoggerSetUp
 from utils.confing_handle import HandleConfig
+from pages_selector.find_element import FindEles
 
 _driver = ''
 _conf_handler = HandleConfig('setting.ini')
@@ -17,7 +17,7 @@ def init_logger():
 
 _logger = init_logger()
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="class")
 def driver_init():
     global _driver, _logger
     _logger.info("开始初始化WebDriver...")
@@ -30,6 +30,7 @@ def driver_init():
     
     _driver = webdriver.Edge(options=edge_options)
     _driver.implicitly_wait(10)
+    _driver.maximize_window()
     _logger.info("WebDriver初始化成功！")
 
     yield _driver, _logger  # 返回driver对象
@@ -44,16 +45,16 @@ def login_driver(driver_init):
     if _driver == '':        # 避免重复初始化webdriver
         _driver, _ = driver_init   
     
-    try:
-        env_url = _conf_handler.get_value_str('env', 'env_url')
-        username = _conf_handler.get_value_str('env', 'username')
-        passwd = _conf_handler.get_value_str('env', 'password')
-        _driver.get(env_url)
-        elements_selector = LoginPageEles(_driver, _logger)
-        username_input = elements_selector.user_name_input()
-        passwd_input = elements_selector.passwd_input()
-        login_button = elements_selector.login_button()
-        
+    env_url = _conf_handler.get_value_str('env', 'env_url')
+    username = _conf_handler.get_value_str('env', 'username')
+    passwd = _conf_handler.get_value_str('env', 'password')
+    _driver.get(env_url)
+    elements_selector = FindEles(_driver, _logger)
+
+    try: # 登入环境
+        username_input = elements_selector.find_eles('login', 'username_input')
+        passwd_input = elements_selector.find_eles('login', 'password_input')
+        login_button = elements_selector.find_eles('login', 'login_button')
         ActionChains(_driver).click(username_input)\
             .send_keys(username)\
             .click(passwd_input)\
@@ -68,4 +69,15 @@ def login_driver(driver_init):
         _logger.error(f"登录失败: {str(e)}")
         raise e
 
-    return _driver, _logger
+    yield _driver, _logger
+
+    try: # teardown 登出系统
+        user_info_ele = elements_selector.find_eles('page_head_index', 'head_user_info')
+        ActionChains(_driver).move_to_element(user_info_ele).perform()
+        logout = elements_selector.find_eles('page_head_index', 'head_user_info_logout')
+        ActionChains(_driver).click(logout).perform()
+        _logger.info("退出登陆成功！")
+        
+    except Exception as e:
+        _logger.error(f"退出登陆失败：{str(e)}")
+        raise e

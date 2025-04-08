@@ -46,7 +46,7 @@ class FindEles:
         if ele_find_by == "XPATH": #TODO：根据后续实际需求添加其他定位方式
             ele_find_path = conf_handler.get_value_str(page_local, ele_name)
             ele = self.driver.find_element(By.XPATH, ele_find_path)
-            return ele
+            return ele, ele_name
         else:
             raise ('未定义的定位方式')
 

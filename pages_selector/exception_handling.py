@@ -7,16 +7,20 @@ def ele_selector_exception_handing(func):
     def wrapper(*args, **kwargs):
         logger = args[0].logger #获取元素选择方法类的self.looger日志记录器
         try:
-            ele_selector = func(*args, **kwargs)
+            ele_selector, ele_name = func(*args, **kwargs)
         except FileNotFoundError as e:
             logger.error(f"文件不存在：{e}")
+            raise e
         except configparser.NoSectionError as e:
             logger.error(f"配置文件读取失败：{e}")
+            raise e
         except configparser.NoOptionError as e:
             logger.error(f"配置文件读取失败：{e}")
+            raise e
         except Exception as e:
             logger.error(f"捕获错误：{e}")
+            raise e
         else:
-            logger.info(f"元素定位成功！")
+            logger.info(f"{ele_name}: 元素定位成功！")
             return ele_selector
     return wrapper
