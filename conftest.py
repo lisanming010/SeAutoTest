@@ -61,7 +61,6 @@ def login_driver(driver_init):
             .send_keys(passwd)\
             .click(login_button)\
             .perform()
-        
         sleep(3)
         _logger.info("登录成功")
         
