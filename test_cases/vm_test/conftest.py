@@ -5,18 +5,20 @@ from utils.ele_action import EleAction
 
 
 @pytest.fixture(scope='function')
-def create_vm(request):
-    if not hasattr(request, 'parm'):
-        raise ('无有效参数')
+def create_vm(request, login_driver):
+    driver, logger = login_driver
+    if not hasattr(request, 'param'):
+        raise TypeError('无有效参数')
 
     page_name = 'create_vm'
     vm_create_setup_dict = request.param
     vm_create_conf = vm_create_setup_dict['vmconf']
-    driver = vm_create_setup_dict['driver']
-    logger = vm_create_setup_dict['logger']
 
     ele_find = FindEles(driver, logger)
     ele_action = EleAction(driver, ele_find, page_name, logger)
+
+    ele_find.find_ele('page_head_index', 'compute_button').click()
+    ele_find.find_ele('computer_list_head', 'create_vm_button').click()
 
     # 部署方式
     if vm_create_conf['create_vm_method'] != '':

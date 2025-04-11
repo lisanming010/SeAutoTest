@@ -29,9 +29,9 @@ vm_create_conf = {
     'vmconf': {
         'create_vm_method': '<全新虚拟机>',
         'vm_name': 'SeTestCreate',
-        'vcluster': '<x86默认集群>',
+        'vcluster': '<X86默认集群>',
         'group_name': '<默认分组>',
-        'storage_pool_name': '<本地存储池-10.16.204.135-sdc>',
+        'storage_pool_name': '<共享存储池>',
         'schedule_type': '<指定主机>',
         'host_ip': '<10.16.204.125>',
         'auto_start': True,
@@ -63,9 +63,9 @@ vm_create_conf = {
         'iso_num': 1,
         'iso1': {
             'is_external_iso': False,
-            'iso_name_or_link': 'openEuler-22.03-LTS-SP1-x86_64-dvd.iso',
-            'iso_file_id': 'file-0064c3646b',
-            'associated_storage_pool': '共享存储池'
+            'iso_name_or_link': '<openEuler-22.03-LTS-SP1-x86_64-dvd.iso>',
+            'iso_file_id': '<file-0064c3646b>',
+            'associated_storage_pool': '<共享存储池>'
         },
         'usb_num': 1,
         'usb1': {
@@ -75,18 +75,18 @@ vm_create_conf = {
     }
 }
 
-def vm_create_dict_setup(login_driver):
-    driver, logger = login_driver
-    global vm_create_conf
-    vm_create_conf['driver'] = driver
-    vm_create_conf['logger'] = logger
-    return [(vm_create_conf, )]
+# def vm_create_dict_setup(login_driver):
+#     driver, logger = login_driver
+#     global vm_create_conf
+#     vm_create_conf['driver'] = driver
+#     vm_create_conf['logger'] = logger
+#     return [(vm_create_conf, )]
 
 
 @allure.feature('虚拟机创建')
 class TestVmCreate():
 
-    @pytest.mark.parametrize('create_vm', [(vm_create_conf, )], indirect=True)
+    @pytest.mark.parametrize('create_vm', [vm_create_conf], indirect=True)
     @allure.story('创建全新虚拟机')
-    def test_createvm001_new(slef):
+    def test_createvm001_new(slef, create_vm):
         print('test running')

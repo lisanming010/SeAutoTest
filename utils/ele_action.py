@@ -1,6 +1,6 @@
 from selenium.webdriver.common.action_chains import ActionChains
 class EleAction():
-    def __init__(self, driver, ele_find, page_name):
+    def __init__(self, driver, ele_find, page_name, logger):
         '''
         selenium部分动作包装类
 
@@ -11,6 +11,7 @@ class EleAction():
         self.driver = driver
         self.ele_find = ele_find.find_ele
         self.page_name = page_name
+        self.logger = logger
     
     def ele_selection(self, ele_name, ele_replace=''):
         """
@@ -19,8 +20,7 @@ class EleAction():
         if ele_replace == '':
             return self.ele_find(self.page_name, ele_name)
         else:
-            ele_replace = ele_replace.strip('<>')
-            return self.ele_find(self.page_name, ele_name, replace_str=ele_replace)
+            return self.ele_find(self.page_name, ele_name, replace_target=ele_replace)
 
 
     def click(self, click_button, click_button_replace=''):
@@ -32,8 +32,7 @@ class EleAction():
         if click_button_replace == '':
             self.ele_find(self.page_name, click_button).click()
         elif click_button_replace != '':
-            click_button_replace = click_button_replace.strip('<>')
-            self.ele_find(self.page_name, click_button, replace_str=click_button_replace).click()
+            self.ele_find(self.page_name, click_button, replace_target=click_button_replace).click()
 
     def dropdown_menu_select(self, selector, target_option, selector_replace='', target_option_repalce=''):
         """
@@ -43,14 +42,12 @@ class EleAction():
         :target_option: 选项名称，element_locating中option
         """
         if selector_replace != '':
-            selector_replace = selector_replace.strip('<>')
-            self.ele_find(self.page_name, selector, replace_str=selector_replace).click()
+            self.ele_find(self.page_name, selector, replace_target=selector_replace).click()
         elif selector_replace == '':
-            self.ele_find(self.page_name, selector).click
+            self.ele_find(self.page_name, selector).click()
 
         if target_option_repalce != '':
-            target_option_repalce = target_option_repalce.strip('<>')
-            self.ele_find(self.page_name, target_option, replace_str=target_option_repalce)
+            self.ele_find(self.page_name, target_option, replace_target=target_option_repalce).click()
         elif target_option_repalce == '':
             self.ele_find(self.page_name, target_option).click()
         
@@ -64,6 +61,5 @@ class EleAction():
         if input_ele_repalce == '':
             input_ele = slef.ele_find(slef.page_name, input)
         elif input_ele_repalce != '':
-            input_ele_repalce = input_ele_repalce.strip('<>')
-            input_ele = slef.ele_find(slef.page_name, input, replace_str=input_ele_repalce)
-        ActionChains(slef.driver).click(input_ele).send_keys(input_content).perform
+            input_ele = slef.ele_find(slef.page_name, input, replace_target=input_ele_repalce)
+        ActionChains(slef.driver).click(input_ele).send_keys(input_content).perform()

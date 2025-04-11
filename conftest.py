@@ -5,6 +5,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from utils.log_handle.log_handle import LoggerSetUp
 from utils.confing_handle import HandleConfig
 from pages_selector.find_element import FindEles
+from test_cases.vm_test.conftest import create_vm
 
 _driver = ''
 _conf_handler = HandleConfig('setting.ini')

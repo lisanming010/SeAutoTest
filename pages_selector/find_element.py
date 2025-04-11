@@ -48,9 +48,11 @@ class FindEles:
             ele_find_path = conf_handler.get_value_str(page_local, ele_name)
             if replace_target != '' :
                 if type(replace_target) is str: 
+                    replace_target = replace_target.strip('<>')
                     ele_find_path = ele_find_path.replace('<replace>', replace_target)
                 elif type(replace_target) is list:
                     for i in replace_target:
+                        i = i.strip('<>')
                         ele_find_path = ele_find_path.replace('<replace>', i)
             ele = self.driver.find_element(By.XPATH, ele_find_path)
             return ele, ele_name
