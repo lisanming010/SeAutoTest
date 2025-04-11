@@ -12,6 +12,17 @@ class EleAction():
         self.ele_find = ele_find.find_ele
         self.page_name = page_name
     
+    def ele_selection(self, ele_name, ele_replace=''):
+        """
+        元素选择器
+        """
+        if ele_replace == '':
+            return self.ele_find(self.page_name, ele_name)
+        else:
+            ele_replace = ele_replace.strip('<>')
+            return self.ele_find(self.page_name, ele_name, replace_str=ele_replace)
+
+
     def click(self, click_button, click_button_replace=''):
         """
         元素点击

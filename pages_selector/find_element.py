@@ -32,22 +32,26 @@ class FindEles:
         return conf_handler
 
     @exception_handling.ele_selector_exception_handing
-    def find_ele(self, page_local, ele_name, ele_find_by='XPATH', replace_str=''):
+    def find_ele(self, page_local, ele_name, ele_find_by='XPATH', replace_target=''):
         """
         选择元素，返回元素选择器
 
         :page_local: 元素所处页面，需要与element_locating.ini中section对应
         :ele_name: 元素名称，需要与element_locating.ini中元素option对应
         :ele_find_by: 元素定位方式默认为xpath，需要与element_locating.ini中元素option对应，不指定时默认使用ele_name+find_by拼接
-        :replace_str: 替换定位xpath部分内容，默认为空不执行替换
+        :replace_str: 替换定位xpath部分内容，默认为空不执行替换，传递list时将会遍历list执行替换
         """
         conf_handler = self.config_handler()
         if conf_handler.has_option(page_local, f'{ele_name}_find_by'):
             ele_find_by = conf_handler.get_value_str(page_local, f'{ele_name}_find_by')
         if ele_find_by == "XPATH": #TODO：根据后续实际需求添加其他定位方式
             ele_find_path = conf_handler.get_value_str(page_local, ele_name)
-            if replace_str != '':
-                ele_find_path = ele_find_path.replace('<replace>', replace_str)
+            if replace_target != '' :
+                if type(replace_target) is str: 
+                    ele_find_path = ele_find_path.replace('<replace>', replace_target)
+                elif type(replace_target) is list:
+                    for i in replace_target:
+                        ele_find_path = ele_find_path.replace('<replace>', i)
             ele = self.driver.find_element(By.XPATH, ele_find_path)
             return ele, ele_name
         else:

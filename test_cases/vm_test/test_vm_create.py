@@ -26,8 +26,6 @@ from time import sleep
 
 
 vm_create_conf = {
-    'dirver': 'dirver',
-    'logger': 'logger',
     'vmconf': {
         'create_vm_method': '<全新虚拟机>',
         'vm_name': 'SeTestCreate',
@@ -45,7 +43,7 @@ vm_create_conf = {
         'memory_size': '4',
         'vm_disk_num': 1,
         'vm_disk1': {
-            'disk_size': '100',
+            'disk_size': '100'
         },
         'vm_nic_num': 1,
         'vm_nic1':{
@@ -53,34 +51,42 @@ vm_create_conf = {
             'mac_addr': '<d0:0d:44:3b:c7:99>',
             'firewall_name': '<测试防火墙>',
             'is_use_ipv4': True,
-            'ipv4_addr': '<10.16.204.175>',
-            'ipv4_prefix': '<255.255.248.0>',
-            'ipv4_gateway': '<10.16.207.254>',
+            'ipv4_addr': '10.16.204.175',
+            'ipv4_prefix': '255.255.248.0',
+            'ipv4_gateway': '10.16.207.254',
             'is_online': True,
             'is_ipcheck': True,
             'in_bandwidth': '20',
             'out_bandwidth': '25',
-            'vnic_queue': '',
-        }
-    },
+            'vnic_queue': ''
+        },
+        'iso_num': 1,
+        'iso1': {
+            'is_external_iso': False,
+            'iso_name_or_link': 'openEuler-22.03-LTS-SP1-x86_64-dvd.iso',
+            'iso_file_id': 'file-0064c3646b',
+            'associated_storage_pool': '共享存储池'
+        },
+        'usb_num': 1,
+        'usb1': {
+            'usb_id': ''
+        },
+        'vm_create_num': 1
+    }
 }
 
+def vm_create_dict_setup(login_driver):
+    driver, logger = login_driver
+    global vm_create_conf
+    vm_create_conf['driver'] = driver
+    vm_create_conf['logger'] = logger
+    return [(vm_create_conf, )]
 
-
-def vm_create_dict_setup():
-    vm_create_conf = {}
-    return vm_create_conf
 
 @allure.feature('虚拟机创建')
 class TestVmCreate():
 
-    @pytest.mark.parametrize('create_vm', vm_create_dict_setup(), indirect=True)
+    @pytest.mark.parametrize('create_vm', [(vm_create_conf, )], indirect=True)
     @allure.story('创建全新虚拟机')
-    def test_createvm001_new(slef, login_driver, create_vm):
-        driver, logger = login_driver
-
-
-    
-    @allure.story('从模板创建虚拟机')
-    def test_createvm002_temp(self, login_driver, create_vm):
-        pass
+    def test_createvm001_new(slef):
+        print('test running')
