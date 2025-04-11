@@ -41,6 +41,7 @@ def create_vm(request, login_driver):
     storage_name = vm_create_conf['storage_pool_name']
     if storage_name != '':
         ele_action.dropdown_menu_select('storage_selector', 'storage_select_name', target_option_repalce=storage_name)
+        ele_action.click('vm_name_input', vm_create_conf['vm_name'])
 
     # 调度方式选择
     schedule_type = vm_create_conf['schedule_type']
