@@ -53,7 +53,7 @@ class FindEles:
                 elif type(replace_target) is list:
                     for i in replace_target:
                         i = i.strip('<>')
-                        ele_find_path = ele_find_path.replace('<replace>', i)
+                        ele_find_path = ele_find_path.replace('<replace>', i, 1)
             ele = self.driver.find_element(By.XPATH, ele_find_path)
             return ele, ele_name
         else:

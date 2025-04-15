@@ -1,4 +1,7 @@
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
+from time import sleep
+
 class EleAction():
     def __init__(self, driver, ele_find, page_name, logger):
         '''
@@ -30,9 +33,13 @@ class EleAction():
         :click_button: 按钮元素名称，element_locating中option
         """
         if click_button_replace == '':
-            self.ele_find(self.page_name, click_button).click()
+            button = self.ele_find(self.page_name, click_button)
         elif click_button_replace != '':
-            self.ele_find(self.page_name, click_button, replace_target=click_button_replace).click()
+            button = self.ele_find(self.page_name, click_button, replace_target=click_button_replace)
+
+        ActionChains(self.driver).scroll_to_element(button).click(button).perform()
+        self.logger.info(f"click: {click_button}")
+
 
     def dropdown_menu_select(self, selector, target_option, selector_replace='', target_option_repalce=''):
         """
@@ -42,16 +49,16 @@ class EleAction():
         :target_option: 选项名称，element_locating中option
         """
         if selector_replace != '':
-            self.ele_find(self.page_name, selector, replace_target=selector_replace).click()
+            self.click(selector, selector_replace)
         elif selector_replace == '':
-            self.ele_find(self.page_name, selector).click()
+            self.click(selector)
 
         if target_option_repalce != '':
-            self.ele_find(self.page_name, target_option, replace_target=target_option_repalce).click()
+            self.click(target_option, target_option_repalce)
         elif target_option_repalce == '':
-            self.ele_find(self.page_name, target_option).click()
+            self.click(target_option)
         
-    def input_send(slef, input, input_content, input_ele_repalce=''):
+    def input_send(self, input, input_content, input_ele_repalce=''):
         """
         输入框输入
 
@@ -59,7 +66,13 @@ class EleAction():
         :input_content: 输入内容
         """
         if input_ele_repalce == '':
-            input_ele = slef.ele_find(slef.page_name, input)
+            input_ele = self.ele_find(self.page_name, input)
         elif input_ele_repalce != '':
-            input_ele = slef.ele_find(slef.page_name, input, replace_target=input_ele_repalce)
-        ActionChains(slef.driver).click(input_ele).send_keys(input_content).perform()
+            input_ele = self.ele_find(self.page_name, input, replace_target=input_ele_repalce)
+
+        # input_ele.clear() #部分组件无法清空，入创建虚拟机数量
+        action = ActionChains(self.driver)
+        action.scroll_to_element(input_ele).click(input_ele).key_down(Keys.CONTROL).send_keys('a').send_keys(Keys.DELETE).key_up(Keys.CONTROL) #清空输入框原有内容
+        action.send_keys(input_content)
+        action.perform()
+        self.logger.info(f'click: {input} and send key: {input_content}')

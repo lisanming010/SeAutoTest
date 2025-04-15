@@ -39,7 +39,7 @@ vm_create_conf = {
         'boot_type': '<UEFI>',
         'remark': '测试备注',
         'cpu_core_num': '4',
-        'cpu_socket_num': '<2>',
+        'cpu_socket_num': '',
         'memory_size': '4',
         'vm_disk_num': 1,
         'vm_disk1': {
@@ -47,8 +47,8 @@ vm_create_conf = {
         },
         'vm_nic_num': 1,
         'vm_nic1':{
-            'uplink_switch_name': '<外部交换机>',
-            'mac_addr': '<d0:0d:44:3b:c7:99>',
+            'uplink_switch_name': '<外部-不启用DHCP>',
+            'mac_addr': 'd0:0d:44:3b:c7:99',
             'firewall_name': '<测试防火墙>',
             'is_use_ipv4': True,
             'ipv4_addr': '10.16.204.175',
@@ -63,14 +63,12 @@ vm_create_conf = {
         'iso_num': 1,
         'iso1': {
             'is_external_iso': False,
-            'iso_name_or_link': '<openEuler-22.03-LTS-SP1-x86_64-dvd.iso>',
-            'iso_file_id': '<file-0064c3646b>',
+            'iso_name_or_link': '<ubuntu-22.04.5-live-server-amd64.iso>',
+            'iso_file_id': '<file-00c1c237d7>',
             'associated_storage_pool': '<共享存储池>'
         },
         'usb_num': 1,
-        'usb1': {
-            'usb_id': ''
-        },
+        'usb1': '',
         'vm_create_num': 1
     }
 }

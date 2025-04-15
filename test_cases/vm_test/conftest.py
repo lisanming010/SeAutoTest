@@ -2,6 +2,7 @@ import pytest
 from selenium.webdriver.common.action_chains import ActionChains
 from pages_selector.find_element import FindEles
 from utils.ele_action import EleAction
+from time import sleep
 
 
 @pytest.fixture(scope='function')
@@ -43,6 +44,7 @@ def create_vm(request, login_driver):
         ele_action.dropdown_menu_select('storage_selector', 'storage_select_name', target_option_repalce=storage_name)
         ele_action.click('vm_name_input', vm_create_conf['vm_name'])
 
+    sleep(1)
     # 调度方式选择
     schedule_type = vm_create_conf['schedule_type']
     if schedule_type != '':
@@ -53,9 +55,12 @@ def create_vm(request, login_driver):
         if host_ip != '':
             ele_action.dropdown_menu_select('schedule_choice_host', 'schedule_choice_host_name', target_option_repalce=host_ip)
 
+    ele_action.click('vm_name_input')
+
     # 展开更多设置
-    more_setup = ele_find.find_ele(page_name, 'more_setup')
-    more_setup.click()
+    # more_setup = ele_find.find_ele(page_name, 'more_setup')
+    # more_setup.click()
+    ele_action.click('more_setup')
 
     # 是否创建完成后自动拉起
     auto_start = vm_create_conf['auto_start']
@@ -94,12 +99,13 @@ def create_vm(request, login_driver):
     
     # 磁盘配置
     disk_nums = vm_create_conf['vm_disk_num']
-    add_hw_button = ele_find.find_ele(page_name, 'add_hw_button')
-    add_disk_button = ele_find.find_ele(page_name, 'add_hw_disk_button')
     if disk_nums > 0:
+        if disk_nums > 1:
+            for _ in range(disk_nums):
+                ele_action.click('add_hw_button')
+                ele_action.click('add_hw_disk_button')
         for i in range(disk_nums):
             disk_order_name = f'vm_disk{i+1}'
-            ActionChains(driver).click(add_hw_button).click(add_disk_button).perform() #添加磁盘
             if vm_create_conf[disk_order_name] != '':
                 vm_disk_conf = vm_create_conf[disk_order_name]
                 disk_name = f'磁盘{i+1}'
@@ -111,44 +117,46 @@ def create_vm(request, login_driver):
 
     # 网卡配置
     vnic_nums = vm_create_conf['vm_nic_num']
-    add_vnic_button = ele_find.find_ele(page_name, 'add_hw_vmnic_button')
     if vnic_nums > 0:
+        if vnic_nums > 1:
+            for i in range(vnic_nums):
+                ele_action.click('add_hw_button')
+                ele_action.click('add_hw_vmnic_button')
         for i in range(vnic_nums):
             vnic_order_name = f'vm_nic{i+1}'
             vnic_order = f'{i+1}'
-            ActionChains(driver).click(add_hw_button).click(add_vnic_button).perform() #添加网卡
             if vm_create_conf[vnic_order_name] != '':
                 vnic_conf = vm_create_conf[vnic_order_name]
                 vnic_name = f'网卡{i+1}'
                 ele_action.click('vmnic_conf_button', vnic_name)
                 #上行交换机配置
-                if vnic_conf('uplink_switch_name') != '':
+                if vnic_conf['uplink_switch_name'] != '':
                     ele_action.dropdown_menu_select('vmnic_conf_uplink_selector', 'vmnic_conf_uplink_select_name',
                                                     selector_replace=vnic_order,
-                                                    target_option_repalce=vnic_conf('uplink_switch_name'))
+                                                    target_option_repalce=vnic_conf['uplink_switch_name'])
 
                 #mac地址配置
-                if vnic_conf('mac_addr') != '':
-                    ele_action.input_send('vmnic_hwaddr_conf_input', vnic_conf('mac_addr'), vnic_order)
+                if vnic_conf['mac_addr'] != '':
+                    ele_action.input_send('vmnic_hwaddr_conf_input', vnic_conf['mac_addr'], vnic_order)
 
                 # 防火墙配置
-                if vnic_conf('firewall_name') != '':
-                    vnic_firewall_selector = ele_find.find_ele(page_name, 'vmnic_firewall_conf_selector', replace_str=vnic_order)
-                    vnic_firewall_selector.click()
+                if vnic_conf['firewall_name'] != '':
                     ele_action.dropdown_menu_select('vmnic_firewall_conf_selector', 'vmnic_firewall_conf_select_name',
-                                                    vnic_order, vnic_conf('firewall_name'))
+                                                    vnic_order, vnic_conf['firewall_name'])
                     
                 # IPv4配置
-                is_use_switch = ele_find.find_ele(page_name, 'vmnic_is_use_ipv4', replace_str=f'{i+1}')
+                is_use_switch = ele_find.find_ele(page_name, 'vmnic_is_use_ipv4', replace_target=f'{i+1}')
                 if vnic_conf['is_use_ipv4'] == True:
                     if 'ivu-switch-checked' not in is_use_switch.get_attribute('class'):
                         is_use_switch.click()
                     ele_action.input_send('vmnic_ipv4_conf_input', vnic_conf['ipv4_addr'], vnic_order)
                     ele_action.input_send('vmnic_ipv4_conf_prefix_input', vnic_conf['ipv4_prefix'], vnic_order)
                     ele_action.input_send('vmnic_ipv4_conf_gateway_input', vnic_conf['ipv4_gateway'], vnic_order)
-
                 elif vnic_conf['is_use_ipv4'] == False and 'ivu-switch-checked' in is_use_switch.get_attribute('class'):
                     is_use_switch.click()
+
+                #展开网卡高级设置
+                ele_action.click('vmnic_conf_advanced', vnic_order)
 
                 #网卡上下线配置
                 if vnic_conf['is_online'] == False:
@@ -184,21 +192,23 @@ def create_vm(request, login_driver):
             ele_action.click('optical_driver_button', iso_oder_name)
             if iso_conf != '':
                 if iso_conf['is_external_iso'] is False:
-                    replace_list = [iso_conf['iso_file_id'], iso_conf['associated_storage_pool'], iso_conf['iso_name_or_link']]
+                    replace_list = [iso_conf['associated_storage_pool'], iso_conf['iso_name_or_link']]
                     ele_action.dropdown_menu_select('optical_driver_selector', 'optical_driver_select_name',
                                                     iso_order, replace_list)
                 else:
                     ele_action.input_send('optical_driver_input', iso_conf['iso_name_or_link'], iso_order)
+                ele_action.click('optical_driver_submit', iso_order)
     
     #usb配置
+    sleep(1)
     usb_num = vm_create_conf['usb_num']
     if usb_num > 0:
-        add_usb_button = ele_action.ele_selection('add_hw_usb_button')
         for i in range(usb_num):
-            ActionChains(driver).click(add_hw_button).click(add_usb_button).perform()
             usb_order = f'{i+1}'
             usb_order_name = f'USB{i+1}'
-            usb_conf = vm_create_conf(f'USB{usb_order}')
+            ele_action.click('add_hw_button')
+            ele_action.click('add_hw_usb_button')
+            usb_conf = vm_create_conf[f'usb{usb_order}']
             ele_action.click('usb_conf_button', usb_order_name)
             if usb_conf != '':
                 ele_action.dropdown_menu_select('usb_conf_selector', 'usb_conf_select_name',
