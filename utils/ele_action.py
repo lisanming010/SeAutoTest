@@ -37,7 +37,7 @@ class EleAction():
         elif click_button_replace != '':
             button = self.ele_find(self.page_name, click_button, replace_target=click_button_replace)
 
-        ActionChains(self.driver).scroll_to_element(button).click(button).perform()
+        ActionChains(self.driver).click(button).perform()
         self.logger.info(f"click: {click_button}")
 
 
@@ -53,6 +53,8 @@ class EleAction():
         elif selector_replace == '':
             self.click(selector)
 
+        if target_option == 'vmnic_conf_uplink_select_name':
+            sleep(30)
         if target_option_repalce != '':
             self.click(target_option, target_option_repalce)
         elif target_option_repalce == '':
@@ -70,9 +72,9 @@ class EleAction():
         elif input_ele_repalce != '':
             input_ele = self.ele_find(self.page_name, input, replace_target=input_ele_repalce)
 
-        # input_ele.clear() #部分组件无法清空，入创建虚拟机数量
+        # input_ele.clear() #部分组件无法清空，如创建虚拟机数量
         action = ActionChains(self.driver)
-        action.scroll_to_element(input_ele).click(input_ele).key_down(Keys.CONTROL).send_keys('a').send_keys(Keys.DELETE).key_up(Keys.CONTROL) #清空输入框原有内容
+        action.click(input_ele).key_down(Keys.CONTROL).send_keys('a').send_keys(Keys.DELETE).key_up(Keys.CONTROL) #清空输入框原有内容
         action.send_keys(input_content)
         action.perform()
         self.logger.info(f'click: {input} and send key: {input_content}')

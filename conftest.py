@@ -40,7 +40,7 @@ def driver_init():
     _logger.info("关闭WebDriver...")
     _driver.close()
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def login_driver(driver_init):
     global _driver, _logger
     if _driver == '':        # 避免重复初始化webdriver
@@ -71,13 +71,13 @@ def login_driver(driver_init):
 
     yield _driver, _logger
 
-    try: # teardown 登出系统
-        user_info_ele = elements_selector.find_ele('page_head_index', 'head_user_info')
-        ActionChains(_driver).move_to_element(user_info_ele).perform()
-        logout = elements_selector.find_ele('page_head_index', 'head_user_info_logout')
-        ActionChains(_driver).click(logout).perform()
-        _logger.info("退出登陆成功！")
+    # try: # teardown 登出系统
+    #     user_info_ele = elements_selector.find_ele('page_head_index', 'head_user_info')
+    #     ActionChains(_driver).move_to_element(user_info_ele).perform()
+    #     logout = elements_selector.find_ele('page_head_index', 'head_user_info_logout')
+    #     ActionChains(_driver).click(logout).perform()
+    #     _logger.info("退出登陆成功！")
         
-    except Exception as e:
-        _logger.error(f"退出登陆失败：{str(e)}")
-        raise e
+    # except Exception as e:
+    #     _logger.error(f"退出登陆失败：{str(e)}")
+    #     raise e

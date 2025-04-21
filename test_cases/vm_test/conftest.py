@@ -44,12 +44,11 @@ def create_vm(request, login_driver):
         ele_action.dropdown_menu_select('storage_selector', 'storage_select_name', target_option_repalce=storage_name)
         ele_action.click('vm_name_input', vm_create_conf['vm_name'])
 
-    sleep(1)
+    sleep(3)
     # 调度方式选择
     schedule_type = vm_create_conf['schedule_type']
     if schedule_type != '':
         ele_action.click('schedule_type_label', schedule_type)
-    
     if schedule_type == '<指定主机>':
         host_ip = vm_create_conf['host_ip']
         if host_ip != '':
@@ -58,8 +57,6 @@ def create_vm(request, login_driver):
     ele_action.click('vm_name_input')
 
     # 展开更多设置
-    # more_setup = ele_find.find_ele(page_name, 'more_setup')
-    # more_setup.click()
     ele_action.click('more_setup')
 
     # 是否创建完成后自动拉起
@@ -134,7 +131,7 @@ def create_vm(request, login_driver):
                     ele_action.dropdown_menu_select('vmnic_conf_uplink_selector', 'vmnic_conf_uplink_select_name',
                                                     selector_replace=vnic_order,
                                                     target_option_repalce=vnic_conf['uplink_switch_name'])
-
+                
                 #mac地址配置
                 if vnic_conf['mac_addr'] != '':
                     ele_action.input_send('vmnic_hwaddr_conf_input', vnic_conf['mac_addr'], vnic_order)
@@ -149,9 +146,12 @@ def create_vm(request, login_driver):
                 if vnic_conf['is_use_ipv4'] == True:
                     if 'ivu-switch-checked' not in is_use_switch.get_attribute('class'):
                         is_use_switch.click()
-                    ele_action.input_send('vmnic_ipv4_conf_input', vnic_conf['ipv4_addr'], vnic_order)
-                    ele_action.input_send('vmnic_ipv4_conf_prefix_input', vnic_conf['ipv4_prefix'], vnic_order)
-                    ele_action.input_send('vmnic_ipv4_conf_gateway_input', vnic_conf['ipv4_gateway'], vnic_order)
+                    if vnic_conf['ipv4_addr'] != '':
+                        ele_action.input_send('vmnic_ipv4_conf_input', vnic_conf['ipv4_addr'], vnic_order)
+                    if vnic_conf['ipv4_prefix'] != '':
+                        ele_action.input_send('vmnic_ipv4_conf_prefix_input', vnic_conf['ipv4_prefix'], vnic_order)
+                    if vnic_conf['ipv4_gateway'] != '':
+                        ele_action.input_send('vmnic_ipv4_conf_gateway_input', vnic_conf['ipv4_gateway'], vnic_order)
                 elif vnic_conf['is_use_ipv4'] == False and 'ivu-switch-checked' in is_use_switch.get_attribute('class'):
                     is_use_switch.click()
 
@@ -218,3 +218,9 @@ def create_vm(request, login_driver):
         ele_action.input_send('vm_conf_summarize_create_nums_input', vm_create_conf['vm_create_num'])
 
     ele_action.click('vm_create_button')
+    
+    return driver, logger
+
+@pytest.fixture()
+def vm_hw_conf_check():
+    pass
