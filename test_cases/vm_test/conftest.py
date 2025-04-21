@@ -218,6 +218,7 @@ def create_vm(request, login_driver):
         ele_action.input_send('vm_conf_summarize_create_nums_input', vm_create_conf['vm_create_num'])
 
     ele_action.click('vm_create_button')
+    sleep(5)
     
     return driver, logger
 

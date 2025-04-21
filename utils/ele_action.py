@@ -37,6 +37,7 @@ class EleAction():
         elif click_button_replace != '':
             button = self.ele_find(self.page_name, click_button, replace_target=click_button_replace)
 
+        self.logger.info(button)
         ActionChains(self.driver).click(button).perform()
         self.logger.info(f"click: {click_button}")
 
@@ -52,13 +53,12 @@ class EleAction():
             self.click(selector, selector_replace)
         elif selector_replace == '':
             self.click(selector)
-
-        if target_option == 'vmnic_conf_uplink_select_name':
-            sleep(30)
+        sleep(0.5)
         if target_option_repalce != '':
             self.click(target_option, target_option_repalce)
         elif target_option_repalce == '':
             self.click(target_option)
+        sleep(0.5)
         
     def input_send(self, input, input_content, input_ele_repalce=''):
         """
