@@ -41,9 +41,9 @@ vm_create_conf = {
         'iso_num': 1,
         'iso1': {
             'is_external_iso': False,
-            'iso_name_or_link': '<openEuler-22.03-LTS-SP1-x86_64-dvd.iso>',
+            'iso_name_or_link': '<openEuler-22.03-LTS-SP1-aarch64-dvd.iso>',
             'iso_file_id': '<file-00c1c237d7>',
-            'associated_storage_pool': '<本地池-10.16.204.131-nvme0n1>'
+            'associated_storage_pool': '<ceph_1>'
         },
         'usb_num': 1,
         'usb1': '',
