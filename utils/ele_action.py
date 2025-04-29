@@ -1,5 +1,4 @@
 import selenium.common.exceptions as seEception
-import selenium.common
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 from time import sleep
@@ -57,6 +56,7 @@ class EleAction():
             self.click(selector)
         sleep(0.5)
 
+        self.driver.implicitly_wait(0) #暂时取消隐式等待
         while True: # 下拉列表分页情况处理，遍历所有页面仍未定位到元素时才抛出异常
             try:
                 if target_option_repalce != '':
@@ -77,6 +77,7 @@ class EleAction():
             else:
                 sleep(0.5)
                 break
+        self.driver.implicitly_wait(10)
         
     def input_send(self, input, input_content, input_ele_repalce=''):
         """
