@@ -64,6 +64,7 @@ class EleAction():
                 elif target_option_repalce == '':
                     self.click(target_option)
             except seEception.NoSuchElementException as not_fond_ele_target_option:
+                #单页下拉列表时直接抛出元素不存在异常
                 try:
                     page_down_button = self.ele_find('general_common', 'select_dropdown_pagination_pgdown')
                 except:
