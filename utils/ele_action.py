@@ -1,3 +1,5 @@
+import selenium.common.exceptions as seEception
+import selenium.common
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 from time import sleep
@@ -54,11 +56,27 @@ class EleAction():
         elif selector_replace == '':
             self.click(selector)
         sleep(0.5)
-        if target_option_repalce != '':
-            self.click(target_option, target_option_repalce)
-        elif target_option_repalce == '':
-            self.click(target_option)
-        sleep(0.5)
+
+        while True: # 下拉列表分页情况处理，遍历所有页面仍未定位到元素时才抛出异常
+            try:
+                if target_option_repalce != '':
+                    self.click(target_option, target_option_repalce)
+                elif target_option_repalce == '':
+                    self.click(target_option)
+            except seEception.NoSuchElementException as not_fond_ele_target_option:
+                try:
+                    page_down_button = self.ele_find('general_common', 'select_dropdown_pagination_pgdown')
+                except:
+                    raise not_fond_ele_target_option
+                else:
+                    if 'ivu-page-disabled' in page_down_button.get_attribute('class'):
+                        raise not_fond_ele_target_option
+                    else:
+                        page_down_button.click()
+                        sleep(0.5)
+            else:
+                sleep(0.5)
+                break
         
     def input_send(self, input, input_content, input_ele_repalce=''):
         """
