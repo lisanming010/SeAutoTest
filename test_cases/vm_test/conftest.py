@@ -222,6 +222,7 @@ def create_vm(request, login_driver):
                 ele_action.dropdown_menu_select('usb_conf_selector', 'usb_conf_select_name',
                                                 usb_order, usb_conf['usb_id'])
     
+    #创建数量设置
     if vm_create_conf['vm_create_num'] != 0:
         ele_action.input_send('vm_conf_summarize_create_nums_input', vm_create_conf['vm_create_num'])
 
