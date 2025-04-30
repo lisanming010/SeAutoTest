@@ -6,6 +6,8 @@ from assert_check import AssertCheck
 vm_create_conf = {
     'vmconf': {
         'create_vm_method': '<全新虚拟机>',
+        'vm_temp_id': '<vmt-005363c8ae>',
+        'vm_temp_name': '<OE2203SP1>', 
         'vm_name': 'SeTestCreate',
         'vcluster': '<Aarch64默认集群>',
         'group_name': '<默认分组>',

@@ -28,6 +28,13 @@ def create_vm(request, login_driver):
     # 虚拟机名称
     ele_action.input_send('vm_name_input', vm_create_conf['vm_name'])
 
+    # 模板选择，部署方式选择非模板部署时自动跳过相关选项
+    if vm_create_conf['create_vm_method'] == '<从模板部署>':
+        if vm_create_conf['vm_temp_id'] and vm_create_conf['vm_temp_name'] != '':
+            temp_select_replace_list = [vm_create_conf['vm_temp_id'], vm_create_conf['vm_temp_name']]
+            ele_action.dropdown_menu_select('temp_selector', 'temp_select_name', 
+                                            target_option_repalce=temp_select_replace_list)
+
     # 集群选择
     vcluster_select_label = vm_create_conf['vcluster']
     if vcluster_select_label != '':
@@ -65,10 +72,11 @@ def create_vm(request, login_driver):
     if auto_start != auto_star_checkbox.is_selected():
         auto_star_checkbox.click()
 
-    # 系统类型配置
-    system_type = vm_create_conf['system_type']
-    if system_type != '':
-        ele_action.click('system_type', system_type)
+    # 系统类型配置,非全新创建虚拟机时跳过改选项设置
+    if vm_create_conf['create_vm_method'] != '<全新虚拟机>':
+        system_type = vm_create_conf['system_type']
+        if system_type != '':
+            ele_action.click('system_type', system_type)
 
     # 引导类型
     boot_type = vm_create_conf['boot_type']

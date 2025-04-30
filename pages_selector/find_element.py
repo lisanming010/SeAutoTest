@@ -44,16 +44,19 @@ class FindEles:
         conf_handler = self.config_handler()
         if conf_handler.has_option(page_local, f'{ele_name}_find_by'):
             ele_find_by = conf_handler.get_value_str(page_local, f'{ele_name}_find_by')
+
         if ele_find_by == "XPATH": #TODO：根据后续实际需求添加其他定位方式
             ele_find_path = conf_handler.get_value_str(page_local, ele_name)
             if replace_target != '' :
-                if type(replace_target) is str: 
+                if type(replace_target) is str:  #处理多项替换
                     replace_target = replace_target.strip('<>')
                     ele_find_path = ele_find_path.replace('<replace>', replace_target)
+
                 elif type(replace_target) is list:
                     for i in replace_target:
                         i = i.strip('<>')
                         ele_find_path = ele_find_path.replace('<replace>', i, 1)
+                        
             ele = self.driver.find_element(By.XPATH, ele_find_path)
             return ele, ele_name
         else:
