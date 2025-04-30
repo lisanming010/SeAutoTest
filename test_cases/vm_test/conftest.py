@@ -1,5 +1,4 @@
 import pytest
-from selenium.webdriver.common.action_chains import ActionChains
 from pages_selector.find_element import FindEles
 from utils.ele_action import EleAction
 from time import sleep
@@ -43,12 +42,14 @@ def create_vm(request, login_driver):
     # 分组选择
     group_name = vm_create_conf['group_name']
     if group_name != '':
-        ele_action.dropdown_menu_select('group_selector', 'group_select_name', target_option_repalce=group_name)
+        ele_action.dropdown_menu_select('group_selector', 'group_select_name', 
+                                        target_option_repalce=group_name)
 
     # 存储池选择
     storage_name = vm_create_conf['storage_pool_name']
     if storage_name != '':
-        ele_action.dropdown_menu_select('storage_selector', 'storage_select_name', target_option_repalce=storage_name)
+        ele_action.dropdown_menu_select('storage_selector', 'storage_select_name', 
+                                        target_option_repalce=storage_name)
         ele_action.click('vm_name_input', vm_create_conf['vm_name'])
 
     sleep(3)
@@ -59,7 +60,8 @@ def create_vm(request, login_driver):
     if schedule_type == '<指定主机>':
         host_ip = vm_create_conf['host_ip']
         if host_ip != '':
-            ele_action.dropdown_menu_select('schedule_choice_host', 'schedule_choice_host_name', target_option_repalce=host_ip)
+            ele_action.dropdown_menu_select('schedule_choice_host', 'schedule_choice_host_name', 
+                                            target_option_repalce=host_ip)
 
     ele_action.click('vm_name_input')
 
@@ -94,7 +96,8 @@ def create_vm(request, login_driver):
     ele_action.input_send('cpu_conf_input', cpu_core_num)
     if cpu_soket_num != '':
         ele_action.click('cpu_conf_advanced')
-        ele_action.dropdown_menu_select('cpu_conf_socket_num_selector', 'cpu_conf_socket_num', target_option_repalce=cpu_soket_num)
+        ele_action.dropdown_menu_select('cpu_conf_socket_num_selector', 'cpu_conf_socket_num', 
+                                        target_option_repalce=cpu_soket_num)
 
     # 内存配置
     memory_size = vm_create_conf['memory_size']
