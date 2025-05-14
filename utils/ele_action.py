@@ -16,69 +16,87 @@ class EleAction():
         self.ele_find = ele_find.find_ele
         self.page_name = page_name
         self.logger = logger
-    
-    def ele_selection(self, ele_name, ele_replace=''):
+
+    def ele_selection(self, ele_name, ele_replace='', page_local='', ele_kind = ''):
         """
         元素选择器
         """
-        if ele_replace == '':
-            return self.ele_find(self.page_name, ele_name)
-        else:
-            return self.ele_find(self.page_name, ele_name, replace_target=ele_replace)
+        page_name = self.page_name
+        if page_local != '':
+            page_name = page_local
+ 
+        if ele_kind == '':
+            if ele_replace == '':
+                return self.ele_find(page_name, ele_name)
+            else:
+                return self.ele_find(page_name, ele_name, replace_target=ele_replace)
+
+        self.driver.implicitly_wait(0)
+        while True:
+            try:
+                if ele_replace == '':
+                    ele = self.ele_find(page_name, ele_name)
+                else:
+                    ele = self.ele_find(page_name, ele_name, replace_target=ele_replace)
+            except seEception.NoSuchElementException as not_fond_ele_target_option: #未找到元素时进入翻页遍历逻辑
+                try:
+                    if ele_kind == 'list':
+                        page_down_button = self.ele_find(page_name, 'list_pgdown') #判断是否有分页控件
+                    elif ele_kind == 'selector':
+                        page_down_button = self.ele_find('general_common', 'select_dropdown_pagination_pgdown')
+                    elif ele_kind == 'popup':
+                        page_down_button = self.ele_find('general_common', 'popup_list_pgdown')
+                except:
+                    self.driver.implicitly_wait(10)
+                    raise not_fond_ele_target_option
+                else:
+                    if 'ivu-page-disabled' in page_down_button.get_attribute('class'): #判断是否为最后一页
+                        self.driver.implicitly_wait(10)
+                        raise not_fond_ele_target_option
+                    else:
+                        page_down_button.click()
+                        sleep(0.5)
+            else:
+                self.driver.implicitly_wait(10)
+                return ele
 
 
-    def click(self, click_button, click_button_replace=''):
+    def click(self, click_button, click_button_replace='', ele_kind = ''):
         """
         元素点击
 
         :click_button: 按钮元素名称，element_locating中option
         """
         if click_button_replace == '':
-            button = self.ele_find(self.page_name, click_button)
+            button = self.ele_selection(click_button, ele_kind=ele_kind)
         elif click_button_replace != '':
-            button = self.ele_find(self.page_name, click_button, replace_target=click_button_replace)
+            button = self.ele_selection(click_button, click_button_replace, ele_kind=ele_kind)
 
         self.logger.info(button)
         ActionChains(self.driver).click(button).perform()
         self.logger.info(f"click: {click_button}")
 
 
-    def dropdown_menu_select(self, selector, target_option, selector_replace='', target_option_repalce=''):
+    def dropdown_menu_select(self, selector, target_option, selector_replace='', target_option_repalce='',
+                              ele_kind='selector'):
         """
         下拉列表选择
 
         :selector: 下拉列表元素名称，element_locating中option
         :target_option: 选项名称，element_locating中option
+        :ele_kind: 元素选择类型，可选 selector、popup
         """
         if selector_replace != '':
-            self.click(selector, selector_replace)
+            selector_button = self.ele_selection(selector, selector_replace)
         elif selector_replace == '':
-            self.click(selector)
-        sleep(0.5)
+            selector_button = self.ele_selection(selector)
+        selector_button.click()
+        sleep(1)
 
-        self.driver.implicitly_wait(0) #暂时取消隐式等待
-        while True: # 下拉列表分页情况处理，遍历所有页面仍未定位到元素时才抛出异常
-            try:
-                if target_option_repalce != '':
-                    self.click(target_option, target_option_repalce)
-                elif target_option_repalce == '':
-                    self.click(target_option)
-            except seEception.NoSuchElementException as not_fond_ele_target_option:
-                #单页下拉列表时直接抛出元素不存在异常
-                try:
-                    page_down_button = self.ele_find('general_common', 'select_dropdown_pagination_pgdown')
-                except:
-                    raise not_fond_ele_target_option
-                else:
-                    if 'ivu-page-disabled' in page_down_button.get_attribute('class'):
-                        raise not_fond_ele_target_option
-                    else:
-                        page_down_button.click()
-                        sleep(0.5)
-            else:
-                sleep(0.5)
-                break
-        self.driver.implicitly_wait(10)
+        if target_option_repalce != '':
+            self.click(target_option, target_option_repalce, ele_kind=ele_kind)
+        elif target_option_repalce == '':
+            self.click(target_option, ele_kind=ele_kind)
         
     def input_send(self, input, input_content, input_ele_repalce=''):
         """
@@ -94,7 +112,7 @@ class EleAction():
 
         # input_ele.clear() #部分组件无法清空，如创建虚拟机数量
         action = ActionChains(self.driver)
-        action.click(input_ele).key_down(Keys.CONTROL).send_keys('a').send_keys(Keys.DELETE).key_up(Keys.CONTROL) #清空输入框原有内容
+        action.click(input_ele).key_down(Keys.CONTROL).send_keys('a').key_up(Keys.CONTROL).send_keys(Keys.DELETE) #清空输入框原有内容
         action.send_keys(input_content)
         action.perform()
         self.logger.info(f'click: {input} and send key: {input_content}')

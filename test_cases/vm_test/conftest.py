@@ -75,15 +75,16 @@ def create_vm(request, login_driver):
         auto_star_checkbox.click()
 
     # 系统类型配置,非全新创建虚拟机时跳过改选项设置
-    if vm_create_conf['create_vm_method'] != '<全新虚拟机>':
+    if vm_create_conf['create_vm_method'] == '<全新虚拟机>':
         system_type = vm_create_conf['system_type']
         if system_type != '':
             ele_action.click('system_type', system_type)
 
     # 引导类型
-    boot_type = vm_create_conf['boot_type']
-    if boot_type != '':
-        ele_action.click('boot_type', boot_type)
+    if vm_create_conf['create_vm_method'] == '<全新虚拟机>':
+        boot_type = vm_create_conf['boot_type']
+        if boot_type != '':
+            ele_action.click('boot_type', boot_type)
 
     # 备注
     if vm_create_conf['remark'] != '':
@@ -205,7 +206,7 @@ def create_vm(request, login_driver):
                 if iso_conf['is_external_iso'] is False:
                     replace_list = [iso_conf['associated_storage_pool'], iso_conf['iso_name_or_link']]
                     ele_action.dropdown_menu_select('optical_driver_selector', 'optical_driver_select_name',
-                                                    iso_order, replace_list)
+                                                    iso_order, replace_list, ele_kind='popup')
                 else:
                     ele_action.input_send('optical_driver_input', iso_conf['iso_name_or_link'], iso_order)
                 ele_action.click('optical_driver_submit', iso_order)

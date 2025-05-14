@@ -11,7 +11,7 @@ vm_create_conf = {
         'vm_name': 'SeTestCreate',
         'vcluster': '<Aarch64默认集群>',
         'group_name': '<默认分组>',
-        'storage_pool_name': '<ceph_1>',
+        'storage_pool_name': '<ceph1>',
         'schedule_type': '<指定主机>',
         'host_ip': '<10.16.221.155>',
         'auto_start': True,
@@ -27,13 +27,13 @@ vm_create_conf = {
         },
         'vm_nic_num': 1,
         'vm_nic1':{
-            'uplink_switch_name': '<内部交换机123>',
+            'uplink_switch_name': '<测试交换机1>',
             'mac_addr': 'd0:0d:44:3b:c7:89',
             'firewall_name': '',
             'is_use_ipv4': True,
-            'ipv4_addr': '192.168.30.100',
-            'ipv4_prefix': '',
-            'ipv4_gateway': '',
+            'ipv4_addr': '192.168.1.100',
+            'ipv4_prefix': '255.255.255.0',
+            'ipv4_gateway': '192.168.1.254',
             'is_online': True,
             'is_ipcheck': True,
             'in_bandwidth': '20',
@@ -45,7 +45,7 @@ vm_create_conf = {
             'is_external_iso': False,
             'iso_name_or_link': '<openEuler-22.03-LTS-SP1-aarch64-dvd.iso>',
             'iso_file_id': '<file-00c1c237d7>',
-            'associated_storage_pool': '<ceph_1>'
+            'associated_storage_pool': '<ceph1>'
         },
         'usb_num': 1,
         'usb1': '',
@@ -60,5 +60,5 @@ class TestVmCreate():
     @allure.story('创建全新虚拟机')
     def test_createvm001_new(slef, create_vm):
         driver, logger = create_vm
-        assert_check = AssertCheck(driver, logger, vm_create_conf).vm_hw_conf_check()
+        assert_check = AssertCheck(driver, logger, vm_create_conf).vm_create_hw_conf_check()
         assert assert_check == 1
