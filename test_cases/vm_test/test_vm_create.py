@@ -47,7 +47,7 @@ vm_create_conf = {
             'iso_file_id': '<file-00c1c237d7>',
             'associated_storage_pool': '<ceph1>'
         },
-        'usb_num': 1,
+        'usb_num': 0,
         'usb1': '',
         'vm_create_num': 1
     }
