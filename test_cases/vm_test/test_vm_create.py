@@ -60,5 +60,5 @@ class TestVmCreate():
     @allure.story('创建全新虚拟机')
     def test_createvm001_new(slef, create_vm):
         driver, logger = create_vm
-        assert_check = AssertCheck(driver, logger, vm_create_conf).vm_create_hw_conf_check()
+        assert_check = AssertCheck(driver, logger, vm_create_conf['vmconf']).vm_create_hw_conf_check()
         assert assert_check == 1

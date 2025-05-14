@@ -1,4 +1,7 @@
 import pytest
+import os
+import time
+import allure
 from time import sleep
 from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
@@ -9,6 +12,15 @@ from test_cases.vm_test.conftest import create_vm
 
 _driver = ''
 _conf_handler = HandleConfig('setting.ini')
+
+SCREENSHOT_SAVE_PATH = './screenshots/'
+if not os.path.exists(SCREENSHOT_SAVE_PATH):
+    os.makedirs(SCREENSHOT_SAVE_PATH)
+
+def screen_shot(driver, screenshot_name):
+    screenshot_path = os.path.join(SCREENSHOT_SAVE_PATH, f'{screenshot_name}_{int(time.time())}.png')
+    driver.save_screenshot(screenshot_path)
+    return screenshot_path
 
 def init_logger():
     logger = LoggerSetUp('test_log_pytest')
@@ -81,3 +93,14 @@ def login_driver(driver_init):
     # except Exception as e:
     #     _logger.error(f"退出登陆失败：{str(e)}")
     #     raise e
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item):
+    outcom = yield
+    rep = outcom.get_result()
+    if rep.when == 'call' and rep.failed:
+        test_name = item.name
+        if _driver:
+            screenshoot_path = screen_shot(_driver, test_name)
+            allure.attach.file(screenshoot_path, name='ScreenShot', 
+                               attachment_type=allure.attachment_type.PNG)
