@@ -2,7 +2,77 @@ import pytest
 from pages_selector.find_element import FindEles
 from utils.ele_action import EleAction
 from time import sleep
+from typing import TYPE_CHECKING
 
+# IP类型相关替换字段构造体
+_vmnic_conf_struct = {
+    'ipv4_is_use': '启用IPv4',
+    'ipv6_is_use': '启用IPv6',
+    'ipv4_address_input': '输入IPv4地址',
+    'ipv6_address_input': '输入IPv6地址',
+    'ipv4_netmask_input': 'netMask',
+    'ipv6_netmask_input': 'ipv6NetMask',
+    'ipv4_gateway_input': 'gatewayIp',
+    'ipv6_gateway_input': 'ipv6Gateway',
+    'ipv4_subip': 'IPv4子IP地址',
+    'ipv6_subip': 'IPv6子IP地址'
+}
+
+def _ip_settig(vnic_conf: dict, ele_action: EleAction, vnic_order: int, logger):
+    '''
+    网卡IP设置IPv4、IPv6共用方法
+
+    :ip_type: ipv4、ipv6
+    :vnic_conf: 网卡配置字典
+    :ele_action: 实例化完成的元素操作ele_action类
+    :vnic_order: 网卡序号
+    '''
+    for ip_type in ['ipv4', 'ipv6']:
+        replace_list = [_vmnic_conf_struct[f'{ip_type}_is_use'], vnic_order]
+        try:
+            is_use_switch = ele_action.ele_selection('vmnic_is_use_ip', replace_list)
+        except:
+            if ip_type == 'ipv6': # 系统未启用ipv6时自动忽略相关配置
+                logger.warning('未找到元素：IPv6启用开关，或系统未启用IPv6开关')
+                break
+            else:
+                raise
+        if vnic_conf[f'is_use_{ip_type}'] == True:   
+            if 'ivu-switch-checked' not in is_use_switch.get_attribute('class'):
+                is_use_switch.click()
+
+            if vnic_conf[f'{ip_type}_addr'] != '': 
+                replace_list = [_vmnic_conf_struct[f'{ip_type}_address_input'], vnic_order]
+                ele_action.input_send('vmnic_ip_conf_input', vnic_conf[f'{ip_type}_addr'], replace_list)
+
+            if vnic_conf[f'{ip_type}_prefix'] != '':
+                replace_list = [_vmnic_conf_struct[f'{ip_type}_netmask_input'], vnic_order]
+                '''
+                如果IP控件处于不可输入状态则跳过输入，如交换机选择为启用了DHCP的场景，网关字段类似
+                TODO: 这种情况下assert断言也应当忽略对应判断                
+                '''
+                if 'ivu-input-disabled' not in ele_action.ele_selection('vmnic_ip_conf_prefix_input', replace_list).get_attribute('class'):
+                    ele_action.input_send('vmnic_ip_conf_prefix_input', vnic_conf[f'{ip_type}_prefix'], replace_list)
+            
+            if vnic_conf[f'{ip_type}_gateway'] != '':
+                replace_list = [_vmnic_conf_struct[f'{ip_type}_gateway_input'], vnic_order]
+                if 'ivu-input-disabled' not in ele_action.ele_selection('vmnic_ip_conf_gateway_input', replace_list).get_attribute('class'):
+                    ele_action.input_send('vmnic_ip_conf_gateway_input', vnic_conf[f'{ip_type}_gateway'], replace_list)
+
+            subip_type = _vmnic_conf_struct[f'{ip_type}_subip'] #子IP配置
+            if vnic_conf[f'{ip_type}_subip_is_use']:
+                replace_list = [subip_type, vnic_order]
+                ele_action.click('vmnic_subip_checkbox', replace_list)
+
+                if vnic_conf[f'{ip_type}_subip_set_mode'] == '随机':
+                    replace_list = [subip_type, vnic_order]
+                    ele_action.input_send('vmnic_subip_nums_input', vnic_conf[f'{ip_type}_subip_random_nums'], replace_list)
+                if vnic_conf[f'{ip_type}_subip_set_mode'] == '指定':
+                    replace_list = [subip_type, vnic_order]
+                    ele_action.click('vmnic_subip_appoint_radio', replace_list)
+                    ele_action.input_send('vmnic_subip_appoint_input', vnic_conf[f'{ip_type}_subip_appoint_addr'], replace_list)
+        elif vnic_conf[f'is_use_{ip_type}'] == False and 'ivu-switch-checked' in is_use_switch.get_attribute('class'):
+            is_use_switch.click()
 
 @pytest.fixture(scope='function')
 def create_vm(request, login_driver):
@@ -143,6 +213,7 @@ def create_vm(request, login_driver):
                     ele_action.dropdown_menu_select('vmnic_conf_uplink_selector', 'vmnic_conf_uplink_select_name',
                                                     selector_replace=vnic_order,
                                                     target_option_repalce=vnic_conf['uplink_switch_name'])
+                    ele_action.click('vmnic_conf_uplink_selector_after_click', vnic_order)
                 
                 #mac地址配置
                 if vnic_conf['mac_addr'] != '':
@@ -152,20 +223,8 @@ def create_vm(request, login_driver):
                 if vnic_conf['firewall_name'] != '':
                     ele_action.dropdown_menu_select('vmnic_firewall_conf_selector', 'vmnic_firewall_conf_select_name',
                                                     vnic_order, vnic_conf['firewall_name'])
-                    
-                # IPv4配置
-                is_use_switch = ele_find.find_ele(page_name, 'vmnic_is_use_ipv4', replace_target=f'{i+1}')
-                if vnic_conf['is_use_ipv4'] == True:
-                    if 'ivu-switch-checked' not in is_use_switch.get_attribute('class'):
-                        is_use_switch.click()
-                    if vnic_conf['ipv4_addr'] != '':
-                        ele_action.input_send('vmnic_ipv4_conf_input', vnic_conf['ipv4_addr'], vnic_order)
-                    if vnic_conf['ipv4_prefix'] != '':
-                        ele_action.input_send('vmnic_ipv4_conf_prefix_input', vnic_conf['ipv4_prefix'], vnic_order)
-                    if vnic_conf['ipv4_gateway'] != '':
-                        ele_action.input_send('vmnic_ipv4_conf_gateway_input', vnic_conf['ipv4_gateway'], vnic_order)
-                elif vnic_conf['is_use_ipv4'] == False and 'ivu-switch-checked' in is_use_switch.get_attribute('class'):
-                    is_use_switch.click()
+                # ip设置
+                _ip_settig(vnic_conf, ele_action, vnic_order, logger)
 
                 #展开网卡高级设置
                 ele_action.click('vmnic_conf_advanced', vnic_order)

@@ -2,9 +2,10 @@ import selenium.common.exceptions as seEception
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 from time import sleep
+from typing import TYPE_CHECKING
 
 class EleAction():
-    def __init__(self, driver, ele_find, page_name, logger):
+    def __init__(self, driver, ele_find, page_name: str, logger):
         '''
         selenium部分动作包装类
 
@@ -17,7 +18,7 @@ class EleAction():
         self.page_name = page_name
         self.logger = logger
 
-    def ele_selection(self, ele_name, ele_replace='', page_local='', ele_kind = ''):
+    def ele_selection(self, ele_name: str, ele_replace='', page_local='', ele_kind = ''):
         """
         元素选择器
         """

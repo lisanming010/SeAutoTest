@@ -6,7 +6,7 @@ from time import sleep
 import selenium.common.exceptions as seEception
 
 class AssertCheck():
-    def __init__(self, driver, logger, vm_conf):
+    def __init__(self, driver, logger, vm_conf: dict):
         '''
         虚拟机相关断言判定
 
