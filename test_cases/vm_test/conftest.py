@@ -292,7 +292,7 @@ def create_vm(request, login_driver):
     ele_action.click('vm_create_button')
     sleep(5)
     
-    return driver, logger
+    return driver, logger, vm_create_conf
 
 @pytest.fixture()
 def vm_hw_conf_check():

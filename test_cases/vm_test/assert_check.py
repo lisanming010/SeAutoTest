@@ -2,6 +2,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 from pages_selector.find_element import FindEles
 from utils.ele_action import EleAction
+from utils.get_row_info import GetRowText
 from time import sleep
 import selenium.common.exceptions as seEception
 
@@ -21,6 +22,107 @@ class AssertCheck():
         ele_find = FindEles(self.driver, self.logger)
         self.vm_list_selector = EleAction(self.driver, ele_find, 'vm_list', self.logger)
         self.vmconf_details_page_selector = EleAction(self.driver, ele_find, 'vm_hw_conf_details', self.logger)
+        self.general_common = EleAction(self.driver, ele_find, 'general_common', self.logger)
+
+    def vm_list_get_allIp(self, vm_id)-> dict:
+        '''
+        获取虚拟机列表中虚拟机所有IP
+
+        :vm_id: 虚拟机ID
+        -> dict{'IPv4':[], 'IPv6':[]}
+        '''
+
+        ip_dict = {
+            'IPv4': [],
+            'IPv6': []
+        }
+        try:
+            ip_expan_button = self.vm_list_selector.ele_selection('vm_ip_address_expan')
+        
+        except seEception.NoSuchElementException:
+            # 未定位到展开按钮时默认判定为单个IP，可能存在定位异常时误判
+            # TODO：细化判断，仅单IP时才会进入该分支
+            ip_addr_text = self.vm_list_selector.ele_selection('vm_ip_address', vm_id).text.strip()
+            if '.' in ip_addr_text:
+                ip_dict['IPv4'].append(ip_addr_text)
+            elif ':' in ip_addr_text:
+                ip_dict['IPv6'].append(ip_addr_text)
+            return ip_dict
+        
+        else:
+            # 多IP展开逻辑分支
+            ActionChains(self.driver).move_to_element(ip_expan_button).perform()
+            ip_expan_text = self.vm_list_selector.ele_selection('vm_ip_address_expan_text').text.strip().split('\n')
+            if '更多' in ip_expan_text:
+                ip_more_button = self.vm_list_selector.ele_selection('vm_ip_address_expan_more')
+                ActionChains(self.driver).move_to_element(ip_more_button).click(ip_more_button).perform()
+                pgdown_button = self.general_common.ele_selection('popup_list_pgdown')
+                ip_list_temp = []
+                while True:
+                    ip_list_temp.extend(self.vm_list_selector.ele_selection('vm_ip_list').text.strip().split())
+                    if 'ivu-page-disabled' not in pgdown_button.get_attribute('class'):
+                        break
+                    else:
+                        pgdown_button.click()
+                # 列表处理       
+                for i in ip_list_temp:
+                    if '.' in i:
+                        ip_dict['IPv4'].append(i)
+                    elif ':' in i:
+                        ip_dict['IPv6'].append(i)
+            else:
+                key = 'IPv4'
+                for i in ip_expan_text:
+                    if 'IPv4' in i:
+                        key = 'IPv4'
+                        continue
+                    elif 'IPv6' in i:
+                        key = 'IPv6'
+                        continue
+                    ip_dict[key].append(i)
+            return ip_dict
+
+    def vm_list_state_check(self, vm_id):
+        '''
+        校验虚拟机列表中虚拟机状态字段
+
+        :vm_id: 虚拟机ID
+        -> assert_flag int(0,1)
+        '''
+        assert_flag = 0
+        while True:
+            sleep(3)
+            vm_curr_state = self.vm_list_selector.ele_selection('vm_stat', vm_id).text.strip()
+            if self.vm_conf['auto_start']:
+                if '已关机' in vm_curr_state:
+                    assert_flag = 0
+                    self.logger.error(f'虚拟机{vm_id}运行状态有误，创建要求：开机，实际状态为：关机')
+                    return assert_flag
+                elif '运行中' in vm_curr_state:
+                    break
+            else:
+                if '已关机' in vm_curr_state:
+                    break
+        return assert_flag
+
+    def vm_list_ip_check(self, vm_id):
+        is_use_ipv4 = self.vm_conf['is_use_ipv4']
+        ipv4_addr = self.vm_conf['ipv4_addr']
+        is_use_ipv6 = self.vm_conf['is_use_ipv6']
+        ipv6_addr = self.vm_conf['ipv6_addr']
+        if is_use_ipv4 and is_use_ipv6:
+            pass
+        elif is_use_ipv4:
+            pass
+        elif is_use_ipv6:
+            pass
+        
+
+    def vm_list_scale_check(self):
+        pass
+
+    def vm_list_host_check(self):
+        pass
 
     def vm_create_hw_conf_check(self):
         assert_flag = 1
@@ -28,50 +130,64 @@ class AssertCheck():
         vm_create_num = self.vm_conf['vm_create_num']
         vm_name_pre = self.vm_conf['vm_name']
         vm_distribution = {}
-        for i in range(vm_create_num): #批量创建依次校验
+        #批量创建依次校验
+        for i in range(vm_create_num):
             if vm_create_num == 1:
                 vm_name = vm_name_pre
             else:
                 vm_name = f'{vm_name_pre}-{i + 1}'
             try:
                 vm_name_button = self.vm_list_selector.ele_selection('vm_name_button', vm_name, ele_kind='list')
-            except seEception.NoSuchElementException: # 查找不到虚拟机记录，判断为创建失败。TODO：添加日志采集输出错误详情，看是用se还是走接口
+            except seEception.NoSuchElementException:
+                # 查找不到虚拟机记录，判断为创建失败。
+                # TODO：添加日志采集输出错误详情，看是用se还是走接口
                 assert_flag = 0
                 self.logger.error(f'虚拟机{vm_name}创建失败或找不到虚拟机记录')
+                return assert_flag
             else:
                 '''运行状态判断'''
                 vm_id_ele = self.vm_list_selector.ele_selection('vm_id', vm_name)
-                vm_line_text = vm_id_ele.text.strip().split('\n') #输出对应虚拟机整列text，ID、名称、状态、规模、主机IP、创建人
+                #输出对应虚拟机整列text，ID、名称、状态、规模、主机IP、创建人
+                vm_line_text = vm_id_ele.text.strip().split('\n')
                 vm_id = vm_line_text[0]
-                while True:
-                    sleep(3)
-                    vm_statu = self.vm_list_selector.ele_selection('vm_stat', vm_id).text.strip()
-                    if self.vm_conf['auto_start']:
-                        if '已关机' in vm_statu:
-                            assert_flag = 0
-                            self.logger.error(f'虚拟机{vm_name}运行状态有误，创建要求：开机，实际状态为：关机')
-                        elif '运行中' in vm_statu:
-                            break
-                    else:
-                        if '已关机' in vm_statu:
-                            break
+                assert_flag = self.vm_list_state_check(vm_id)
+                if assert_flag:
+                    return assert_flag
                 
                 '''虚拟机IP设置判断'''
-                if self.vm_conf['c'] != '':
-                    vm_ip_address_ele = self.vm_list_selector.ele_selection('vm_ip_address', vm_id)
-                    vm_ip_address = vm_ip_address_ele.text.strip()
-                    if vm_ip_address != self.vm_conf['ipv4_addr']:
-                        assert_flag = 0
-                        self.logger.error(f'虚拟机{vm_name}IP错误，指定IP为：{self.vm_conf["vm_conf"]},实际虚拟机IP为：{vm_ip_address}')
+                if (
+                    (self.vm_conf['is_use_ipv4'] != '' and self.vm_conf['ipv4_addr'] != '') and
+                    (self.vm_conf['is_use_ipv6'] != '' and self.vm_conf['ipv6_addr'] != '')
+                ):
+                    # 同时启用IPv4和IPv6
+                    pass
+                elif self.vm_conf['is_use_ipv4'] != '' and self.vm_conf['ipv4_addr'] != '':
+                    dvswitch_name = self.vm_conf['uplink_switch_name']
+                    dvswitch_text = GetRowText(self.driver, self.logger).dvswitch_row_text(dvswitch_name)
+                    #连接到不启用DHCP的交换机，即指定IP
+                    if dvswitch_text['dvswitch_IPv4_seg'] == '':
+                        vm_ip_address_ele = self.vm_list_selector.ele_selection('vm_ip_address', vm_id)
+                        vm_ip_address = vm_ip_address_ele.text.strip()
+                        if vm_ip_address != self.vm_conf['ipv4_addr']:
+                            assert_flag = 0
+                            self.logger.error(f'虚拟机{vm_name}IP错误，指定IP为：{self.vm_conf["vm_conf"]},\
+                                            实际虚拟机IP为：{vm_ip_address}')
+                            return assert_flag
+                elif self.vm_conf['is_use_ipv6'] != '' and self.vm_conf['ipv6_addr'] != '':
+                    pass
+                    
                 
                 '''所属节点判断'''
                 vm_host = vm_line_text[4]
                 if self.vm_conf['schedule_type'] == '<指定主机>':
                     if vm_host not in self.vm_conf['host_ip']:
                         assert_flag = 0
-                        self.logger.error(f"虚拟机{vm_name}所属主机位置有误，指定节点：{self.vm_conf['schedule_type']}，实际运行节点：{vm_host}")
-                else: #TODO: 批量批量创建验证调度
-                    if vm_host not in vm_distribution: # 统计本次批量创建虚拟机所属物理节点分布，{'node_ip': times,...}
+                        self.logger.error(f"虚拟机{vm_name}所属主机位置有误，指定节点：\
+                                          {self.vm_conf['schedule_type']}，实际运行节点：{vm_host}")
+                else: 
+                    #TODO: 批量批量创建验证调度
+                    # 统计本次批量创建虚拟机所属物理节点分布，{'node_ip': times,...}
+                    if vm_host not in vm_distribution:
                         vm_distribution[f'{vm_host}'] = 1
                     else:
                         vm_distribution[f'{vm_host}'] += 1

@@ -70,7 +70,23 @@ class TestVmCreate():
 
     @pytest.mark.parametrize('create_vm', [vm_create_conf], indirect=True)
     @allure.story('创建全新虚拟机')
-    def test_createvm001_new(slef, create_vm):
-        driver, logger = create_vm
+    def test_createvm001_new(self, create_vm):
+        driver, logger, _ = create_vm
         assert_check = AssertCheck(driver, logger, vm_create_conf['vmconf']).vm_create_hw_conf_check()
         assert assert_check == 1
+
+    # @pytest.mark.parametrize('create_vm', [vm_create_conf], indirect=True)
+    # @allure.story('从模板创建虚拟机')
+    # def test_createvm002_from_temp(self, create_vm):
+    #     pass
+
+    # @pytest.mark.parametrize('create_vm', [vm_create_conf], indirect=True)
+    # @allure.story('从备份创建虚拟机')
+    # def test_createvm002_from_backup(self, create_vm):
+    #     pass
+
+    # @pytest.mark.parametrize('create_vm', [vm_create_conf], indirect=True)
+    # @allure.story('从快照创建虚拟机')
+    # def test_createvm002_from_snap(self, create_vm):
+    #     pass
+
