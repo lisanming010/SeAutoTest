@@ -47,4 +47,5 @@ class GetRowText():
             'dvswitch_uplink': dvswitch_row[10],
             'dvswitch_create_time': dvswitch_row[11]
         }
+        
         return dvswitch_row_dict

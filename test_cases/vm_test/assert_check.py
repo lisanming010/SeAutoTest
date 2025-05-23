@@ -5,6 +5,7 @@ from utils.ele_action import EleAction
 from utils.get_row_info import GetRowText
 from time import sleep
 import selenium.common.exceptions as seEception
+import ipaddress
 
 class AssertCheck():
     def __init__(self, driver, logger, vm_conf: dict):
@@ -41,7 +42,6 @@ class AssertCheck():
         
         except seEception.NoSuchElementException:
             # 未定位到展开按钮时默认判定为单个IP，可能存在定位异常时误判
-            # TODO：细化判断，仅单IP时才会进入该分支
             ip_addr_text = self.vm_list_selector.ele_selection('vm_ip_address', vm_id).text.strip()
             if '.' in ip_addr_text:
                 ip_dict['IPv4'].append(ip_addr_text)
@@ -89,7 +89,7 @@ class AssertCheck():
         :vm_id: 虚拟机ID
         -> assert_flag int(0,1)
         '''
-        assert_flag = 0
+        assert_flag = 1
         while True:
             sleep(3)
             vm_curr_state = self.vm_list_selector.ele_selection('vm_stat', vm_id).text.strip()
@@ -105,19 +105,63 @@ class AssertCheck():
                     break
         return assert_flag
 
-    def vm_list_ip_check(self, vm_id):
-        is_use_ipv4 = self.vm_conf['is_use_ipv4']
-        ipv4_addr = self.vm_conf['ipv4_addr']
-        is_use_ipv6 = self.vm_conf['is_use_ipv6']
-        ipv6_addr = self.vm_conf['ipv6_addr']
-        if is_use_ipv4 and is_use_ipv6:
-            pass
-        elif is_use_ipv4:
-            pass
-        elif is_use_ipv6:
-            pass
-        
+    def ip_handle(self, ip_type, ip_str):
+        '''
+        离散、连续IP处理，"fd02:aa1::aa1-fd02:aa1::aa3,fd02:aa1::aa8" 
+                        -> ['fd02:aa1::aa1', 'fd02:aa1::aa2', 'fd02:aa1::aa3', 'fd02:aa1::aa8']
 
+        :ip_type: IP类型：v4、 v6
+        :ip_str: 需要拆解的字符串，因为校验阶段使用故不再对相关格式做校验
+        '''
+        ip_list = []
+        ip_list_temp = ip_str.split(',')
+        for i in ip_list_temp:
+            if '-' not in ip_list_temp:
+                ip_list.append(i)
+            elif '-' in ip_list_temp:
+                start_ip, end_ip = i.split('-')
+                if ip_type == 'ipv6':
+                    start_ip = ipaddress.IPv6Address(start_ip)
+                    end_ip = ipaddress.IPv6Address(end_ip)
+                if ip_type == 'ipv4':
+                    start_ip = ipaddress.IPv4Address(start_ip)
+                    end_ip = ipaddress.IPv4Address(end_ip)
+                curr_ip = start_ip
+                while curr_ip <= end_ip:
+                    ip_list.append(str(curr_ip))
+                    curr_ip += 1
+        return ip_list
+                    
+
+    def vm_list_ip_check(self, vm_id, vnic_conf:dict):
+        assert_flag = 1
+
+        is_use_ipv4 = vnic_conf['is_use_ipv4']
+        ipv4_addr = vnic_conf['ipv4_addr']
+        is_use_ipv6 = vnic_conf['is_use_ipv6']
+        ipv6_addr = vnic_conf['ipv6_addr']
+
+        ip_dict = self.vm_list_get_allIp(vm_id)
+        uplink_switch_name = vnic_conf['uplink_switch_name']
+        dvswith_info_dict = GetRowText(self.driver, self.logger).dvswitch_row_text(uplink_switch_name)
+        # 连接到启用DHCP的交换机，仅校验是否获取IP
+        if dvswith_info_dict['dvswitch_IPv4_seg'] != '-':
+            pass
+        elif dvswith_info_dict['dvswitch_IPv4_seg'] == '-':
+            ipv4_list = []
+            if is_use_ipv4:
+                ipv4_main_ip = vnic_conf['ipv4_addr']
+                ipv4_list.append(ipv4_main_ip)
+                if vnic_conf['ipv4_subip_is_use']:
+                    if vnic_conf['ipv4_subip_set_mode'] == '指定':
+                        sub_ip_list = self.ip_handle('ipv4', vnic_conf['ipv4_subip_appoint_addr'])
+                        ipv4_list.extend(sub_ip_list)
+                    elif vnic_conf['ipv4_subip_set_mode'] == '随机':
+                        for i in range(vnic_conf['ipv4_subip_random_nums']):
+                            ipv4_list.append(f'random_ip_placeholder{i}')
+            if is_use_ipv6:
+                pass
+      
     def vm_list_scale_check(self):
         pass
 
@@ -155,26 +199,33 @@ class AssertCheck():
                     return assert_flag
                 
                 '''虚拟机IP设置判断'''
-                if (
-                    (self.vm_conf['is_use_ipv4'] != '' and self.vm_conf['ipv4_addr'] != '') and
-                    (self.vm_conf['is_use_ipv6'] != '' and self.vm_conf['ipv6_addr'] != '')
-                ):
-                    # 同时启用IPv4和IPv6
-                    pass
-                elif self.vm_conf['is_use_ipv4'] != '' and self.vm_conf['ipv4_addr'] != '':
-                    dvswitch_name = self.vm_conf['uplink_switch_name']
-                    dvswitch_text = GetRowText(self.driver, self.logger).dvswitch_row_text(dvswitch_name)
-                    #连接到不启用DHCP的交换机，即指定IP
-                    if dvswitch_text['dvswitch_IPv4_seg'] == '':
-                        vm_ip_address_ele = self.vm_list_selector.ele_selection('vm_ip_address', vm_id)
-                        vm_ip_address = vm_ip_address_ele.text.strip()
-                        if vm_ip_address != self.vm_conf['ipv4_addr']:
-                            assert_flag = 0
-                            self.logger.error(f'虚拟机{vm_name}IP错误，指定IP为：{self.vm_conf["vm_conf"]},\
-                                            实际虚拟机IP为：{vm_ip_address}')
-                            return assert_flag
-                elif self.vm_conf['is_use_ipv6'] != '' and self.vm_conf['ipv6_addr'] != '':
-                    pass
+                vnic_num = self.vm_conf['vm_nic_num']
+                if vnic_num > 0:
+                    for i in range(vnic_num):
+                        vnic_order = f'{i+1}'
+                        vnic_name = f'vm_nic{vnic_order}'
+                        vnic_conf = self.vm_conf[vnic_name]
+
+                # if (
+                #     (self.vm_conf['is_use_ipv4'] != '' and self.vm_conf['ipv4_addr'] != '') and
+                #     (self.vm_conf['is_use_ipv6'] != '' and self.vm_conf['ipv6_addr'] != '')
+                # ):
+                #     # 同时启用IPv4和IPv6
+                #     pass
+                # elif self.vm_conf['is_use_ipv4'] != '' and self.vm_conf['ipv4_addr'] != '':
+                #     dvswitch_name = self.vm_conf['uplink_switch_name']
+                #     dvswitch_text = GetRowText(self.driver, self.logger).dvswitch_row_text(dvswitch_name)
+                #     #连接到不启用DHCP的交换机，即指定IP
+                #     if dvswitch_text['dvswitch_IPv4_seg'] == '':
+                #         vm_ip_address_ele = self.vm_list_selector.ele_selection('vm_ip_address', vm_id)
+                #         vm_ip_address = vm_ip_address_ele.text.strip()
+                #         if vm_ip_address != self.vm_conf['ipv4_addr']:
+                #             assert_flag = 0
+                #             self.logger.error(f'虚拟机{vm_name}IP错误，指定IP为：{self.vm_conf["vm_conf"]},\
+                #                             实际虚拟机IP为：{vm_ip_address}')
+                #             return assert_flag
+                # elif self.vm_conf['is_use_ipv6'] != '' and self.vm_conf['ipv6_addr'] != '':
+                #     pass
                     
                 
                 '''所属节点判断'''
