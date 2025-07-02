@@ -213,7 +213,7 @@ def create_vm(request, login_driver):
                     ele_action.dropdown_menu_select('vmnic_conf_uplink_selector', 'vmnic_conf_uplink_select_name',
                                                     selector_replace=vnic_order,
                                                     target_option_repalce=vnic_conf['uplink_switch_name'])
-                    ele_action.click('vmnic_conf_uplink_selector_after_click', vnic_order)
+                    # ele_action.click('vmnic_conf_uplink_selector_after_click', vnic_order)
                 
                 #mac地址配置
                 if vnic_conf['mac_addr'] != '':

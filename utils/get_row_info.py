@@ -1,4 +1,4 @@
-from ele_action import EleAction
+from utils.ele_action import EleAction
 
 class GetRowText():
     def __init__(self, driver, logger):
