@@ -1,6 +1,7 @@
 from utils.ele_action import EleAction
+import ipaddress
 
-class GetRowText():
+class Tools():
     def __init__(self, driver, logger):
         self.driver = driver
         self.logger = logger
@@ -49,3 +50,30 @@ class GetRowText():
         }
         
         return dvswitch_row_dict
+    
+    def ip_handle(self, ip_type, ip_str)-> list:
+        '''
+        离散、连续IP处理，"fd02:aa1::aa1-fd02:aa1::aa3,fd02:aa1::aa8" 
+                        -> ['fd02:aa1::aa1', 'fd02:aa1::aa2', 'fd02:aa1::aa3', 'fd02:aa1::aa8']
+
+        :ip_type: IP类型：v4、 v6
+        :ip_str: 需要拆解的字符串，因为校验阶段使用故不再对相关格式做校验
+        '''
+        ip_list = []
+        ip_list_temp = ip_str.split(',')
+        for i in ip_list_temp:
+            if '-' not in ip_list_temp:
+                ip_list.append(i)
+            elif '-' in ip_list_temp:
+                start_ip, end_ip = i.split('-')
+                if ip_type == 'ipv6':
+                    start_ip = ipaddress.IPv6Address(start_ip)
+                    end_ip = ipaddress.IPv6Address(end_ip)
+                if ip_type == 'ipv4':
+                    start_ip = ipaddress.IPv4Address(start_ip)
+                    end_ip = ipaddress.IPv4Address(end_ip)
+                curr_ip = start_ip
+                while curr_ip <= end_ip:
+                    ip_list.append(str(curr_ip))
+                    curr_ip += 1
+        return ip_list

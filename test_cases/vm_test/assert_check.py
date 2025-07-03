@@ -2,10 +2,9 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 from pages_selector.find_element import FindEles
 from utils.ele_action import EleAction
-from utils.get_row_info import GetRowText
 from time import sleep
+from utils.tools import Tools
 import selenium.common.exceptions as seEception
-import ipaddress
 
 class AssertCheck():
     def __init__(self, driver, logger, vm_conf: dict):
@@ -103,35 +102,7 @@ class AssertCheck():
             else:
                 if '已关机' in vm_curr_state:
                     break
-        return assert_flag
-
-    def ip_handle(self, ip_type, ip_str):
-        '''
-        离散、连续IP处理，"fd02:aa1::aa1-fd02:aa1::aa3,fd02:aa1::aa8" 
-                        -> ['fd02:aa1::aa1', 'fd02:aa1::aa2', 'fd02:aa1::aa3', 'fd02:aa1::aa8']
-
-        :ip_type: IP类型：v4、 v6
-        :ip_str: 需要拆解的字符串，因为校验阶段使用故不再对相关格式做校验
-        '''
-        ip_list = []
-        ip_list_temp = ip_str.split(',')
-        for i in ip_list_temp:
-            if '-' not in ip_list_temp:
-                ip_list.append(i)
-            elif '-' in ip_list_temp:
-                start_ip, end_ip = i.split('-')
-                if ip_type == 'ipv6':
-                    start_ip = ipaddress.IPv6Address(start_ip)
-                    end_ip = ipaddress.IPv6Address(end_ip)
-                if ip_type == 'ipv4':
-                    start_ip = ipaddress.IPv4Address(start_ip)
-                    end_ip = ipaddress.IPv4Address(end_ip)
-                curr_ip = start_ip
-                while curr_ip <= end_ip:
-                    ip_list.append(str(curr_ip))
-                    curr_ip += 1
-        return ip_list
-                    
+        return assert_flag                    
 
     def vm_list_ip_check(self, vm_id, vnic_conf:dict):
         assert_flag = 1
@@ -143,7 +114,7 @@ class AssertCheck():
 
         ip_dict = self.vm_list_get_allIp(vm_id)
         uplink_switch_name = vnic_conf['uplink_switch_name']
-        dvswith_info_dict = GetRowText(self.driver, self.logger).dvswitch_row_text(uplink_switch_name)
+        dvswith_info_dict = Tools.dvswitch_row_text(uplink_switch_name)
         # 连接到启用DHCP的交换机，仅校验是否获取IP
         if dvswith_info_dict['dvswitch_IPv4_seg'] != '-':
             pass
@@ -154,7 +125,7 @@ class AssertCheck():
                 ipv4_list.append(ipv4_main_ip)
                 if vnic_conf['ipv4_subip_is_use']:
                     if vnic_conf['ipv4_subip_set_mode'] == '指定':
-                        sub_ip_list = self.ip_handle('ipv4', vnic_conf['ipv4_subip_appoint_addr'])
+                        sub_ip_list = Tools.ip_handle('ipv4', vnic_conf['ipv4_subip_appoint_addr'])
                         ipv4_list.extend(sub_ip_list)
                     elif vnic_conf['ipv4_subip_set_mode'] == '随机':
                         for i in range(vnic_conf['ipv4_subip_random_nums']):
