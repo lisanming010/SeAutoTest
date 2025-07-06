@@ -14,13 +14,19 @@ class EleAction():
         :page_name: 元素所处页面与element_locating中section保持一致
         '''
         self.driver = driver
-        self.ele_find = ele_find.find_ele
+        self._ele_find = ele_find.find_ele
         self.page_name = page_name
         self.logger = logger
 
-    def ele_selection(self, ele_name: str, ele_replace='', page_local='', ele_kind = ''):
+    def ele_selection(self, ele_name: str, ele_replace='', page_local='', ele_kind = '', find_list=False):
         """
         元素选择器
+
+        :ele_name: 元素定位文件option中元素名称
+        :page_local: 元素定位文件selector名称，不指定时使用类初始化时指定位置
+        :ele_replace: 元素名称中替换文本
+        :find_list: 是否使用find_elements
+        --> ele(s)
         """
         page_name = self.page_name
         if page_local != '':
@@ -28,25 +34,27 @@ class EleAction():
  
         if ele_kind == '':
             if ele_replace == '':
-                return self.ele_find(page_name, ele_name)
+                return self._ele_find(page_name, ele_name, find_list)
             else:
-                return self.ele_find(page_name, ele_name, replace_target=ele_replace)
+                return self._ele_find(page_name, ele_name, replace_target=ele_replace, find_list=find_list)
 
+
+        #分页控件便利页面查询
         self.driver.implicitly_wait(0)
         while True:
             try:
                 if ele_replace == '':
-                    ele = self.ele_find(page_name, ele_name)
+                    ele = self._ele_find(page_name, ele_name)
                 else:
-                    ele = self.ele_find(page_name, ele_name, replace_target=ele_replace)
+                    ele = self._ele_find(page_name, ele_name, replace_target=ele_replace)
             except seEception.NoSuchElementException as not_fond_ele_target_option: #未找到元素时进入翻页遍历逻辑
                 try:
                     if ele_kind == 'list':
-                        page_down_button = self.ele_find(page_name, 'list_pgdown') #判断是否有分页控件
+                        page_down_button = self._ele_find(page_name, 'list_pgdown') #判断是否有分页控件
                     elif ele_kind == 'selector':
-                        page_down_button = self.ele_find('general_common', 'select_dropdown_pagination_pgdown')
+                        page_down_button = self._ele_find('general_common', 'select_dropdown_pagination_pgdown')
                     elif ele_kind == 'popup':
-                        page_down_button = self.ele_find('general_common', 'popup_list_pgdown')
+                        page_down_button = self._ele_find('general_common', 'popup_list_pgdown')
                 except:
                     self.driver.implicitly_wait(10)
                     raise not_fond_ele_target_option
@@ -107,9 +115,9 @@ class EleAction():
         :input_content: 输入内容
         """
         if input_ele_repalce == '':
-            input_ele = self.ele_find(self.page_name, input)
+            input_ele = self._ele_find(self.page_name, input)
         elif input_ele_repalce != '':
-            input_ele = self.ele_find(self.page_name, input, replace_target=input_ele_repalce)
+            input_ele = self._ele_find(self.page_name, input, replace_target=input_ele_repalce)
 
         # input_ele.clear() #部分组件无法清空，如创建虚拟机数量
         action = ActionChains(self.driver)

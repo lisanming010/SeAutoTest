@@ -32,7 +32,7 @@ class FindEles:
         return conf_handler
 
     @exception_handling.ele_selector_exception_handing
-    def find_ele(self, page_local, ele_name, ele_find_by='XPATH', replace_target=''):
+    def find_ele(self, page_local, ele_name, ele_find_by='XPATH', replace_target='', find_list=False):
         """
         选择元素，返回元素选择器
 
@@ -40,6 +40,7 @@ class FindEles:
         :ele_name: 元素名称，需要与element_locating.ini中元素option对应
         :ele_find_by: 元素定位方式默认为xpath，需要与element_locating.ini中元素option对应，不指定时默认使用ele_name+find_by拼接
         :replace_str: 替换定位xpath部分内容，默认为空不执行替换，传递list时将会遍历list执行替换
+        :find_list: True:find_element,false:find_elements,默认为false
         """
         conf_handler = self.config_handler()
         if conf_handler.has_option(page_local, f'{ele_name}_find_by'):
@@ -56,8 +57,11 @@ class FindEles:
                     for i in replace_target:
                         i = i.strip('<>')
                         ele_find_path = ele_find_path.replace('<replace>', i, 1)
-                        
-            ele = self.driver.find_element(By.XPATH, ele_find_path)
+
+            if find_list:
+                ele = self.driver.find_elements(By.XPATH, ele_find_path)
+            else:            
+                ele = self.driver.find_element(By.XPATH, ele_find_path)
             return ele, ele_name
         else:
             raise ('未定义的定位方式')

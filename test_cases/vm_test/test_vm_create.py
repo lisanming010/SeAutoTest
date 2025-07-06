@@ -1,7 +1,7 @@
 import allure
 import pytest
 from time import sleep
-from assert_check import AssertCheck
+from test_cases.vm_test.vm_assert_check import AssertCheck
 
 vm_create_conf = {
     'vmconf': {

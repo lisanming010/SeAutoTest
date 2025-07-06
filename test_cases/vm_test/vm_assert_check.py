@@ -21,7 +21,7 @@ class AssertCheck():
         
         ele_find = FindEles(self.driver, self.logger)
         self.vm_list_selector = EleAction(self.driver, ele_find, 'vm_list', self.logger)
-        self.vmconf_details_page_selector = EleAction(self.driver, ele_find, 'vm_hw_conf_details', self.logger)
+        self.vmconf_details_selector = EleAction(self.driver, ele_find, 'vm_hw_conf_details', self.logger)
         self.general_common = EleAction(self.driver, ele_find, 'general_common', self.logger)
 
     def vm_list_get_allIp(self, vm_id)-> dict:
@@ -81,27 +81,27 @@ class AssertCheck():
                     ip_dict[key].append(i)
             return ip_dict
 
-    def vm_list_state_check(self, vm_id):
+    def vm_list_state_check(self, vm_id, desired_state)-> bool:
         '''
-        校验虚拟机列表中虚拟机状态字段
+        虚拟机状态校验
 
         :vm_id: 虚拟机ID
+        :desired_state: 期望状态
         -> assert_flag int(0,1)
         '''
         assert_flag = 1
+        loop_time = 100
         while True:
             sleep(3)
             vm_curr_state = self.vm_list_selector.ele_selection('vm_stat', vm_id).text.strip()
-            if self.vm_conf['auto_start']:
-                if '已关机' in vm_curr_state:
-                    assert_flag = 0
-                    self.logger.error(f'虚拟机{vm_id}运行状态有误，创建要求：开机，实际状态为：关机')
-                    return assert_flag
-                elif '运行中' in vm_curr_state:
-                    break
+            if desired_state in vm_curr_state:
+                break
+            elif loop_time == 0:
+                self.logger.error(f'虚拟机{vm_id}当前状态与预期状态不一致，当前状态:{vm_curr_state},预期状态:{desired_state},dl:{loop_time*3}s')
+                assert_flag = 0
+                break
             else:
-                if '已关机' in vm_curr_state:
-                    break
+                loop_time -= 1
         return assert_flag                    
 
     def vm_list_ip_check(self, vm_id, vnic_conf:dict):
@@ -117,8 +117,10 @@ class AssertCheck():
         dvswith_info_dict = Tools.dvswitch_row_text(uplink_switch_name)
         # 连接到启用DHCP的交换机，仅校验是否获取IP
         if dvswith_info_dict['dvswitch_IPv4_seg'] != '-':
+            #连接到启用了DHCP的交换机
             pass
         elif dvswith_info_dict['dvswitch_IPv4_seg'] == '-':
+            #连接到不启用DHCP的交换机
             ipv4_list = []
             if is_use_ipv4:
                 ipv4_main_ip = vnic_conf['ipv4_addr']
@@ -165,18 +167,34 @@ class AssertCheck():
                 #输出对应虚拟机整列text，ID、名称、状态、规模、主机IP、创建人
                 vm_line_text = vm_id_ele.text.strip().split('\n')
                 vm_id = vm_line_text[0]
-                assert_flag = self.vm_list_state_check(vm_id)
-                if assert_flag:
+                if self.vm_conf['auto_start']:
+                    vm_desired_state = '运行中'
+                else:
+                    vm_desired_state = '已关机'
+                assert_flag = self.vm_list_state_check(vm_id, vm_desired_state)
+                if not assert_flag:
                     return assert_flag
                 
                 '''虚拟机IP设置判断'''
+                curr_vnic_num = 0
+                vm_name_button.click()
                 vnic_num = self.vm_conf['vm_nic_num']
+                try:
+                    vnic_selector = self.vmconf_details_selector.ele_selection('vnic', find_list=True)
+                    curr_vnic_num = len(vnic_selector)
+                except seEception.NoSuchElementException:
+                    pass
+                if curr_vnic_num != vnic_num:
+                    self.logger.error(f"虚拟机实际网卡数量与配置期望数量不符，期望数量：{vnic_num}, 实际数量：{curr_vnic_num}")
+                    return 0
                 if vnic_num > 0:
                     for i in range(vnic_num):
                         vnic_order = f'{i+1}'
                         vnic_name = f'vm_nic{vnic_order}'
                         vnic_conf = self.vm_conf[vnic_name]
-
+                        '''MAC配置检查'''
+                        mac = vnic_conf['mac_addr']
+                        
                 # if (
                 #     (self.vm_conf['is_use_ipv4'] != '' and self.vm_conf['ipv4_addr'] != '') and
                 #     (self.vm_conf['is_use_ipv6'] != '' and self.vm_conf['ipv6_addr'] != '')

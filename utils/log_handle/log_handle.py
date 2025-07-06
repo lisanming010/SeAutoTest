@@ -6,6 +6,8 @@ class LoggerSetUp:
     def __init__(self, log_file_name, log_file_path=''):
         curr_path = os.path.dirname(os.path.abspath(__file__))
         log_dir_name = os.path.join(curr_path, '..', '..', 'logs')
+        if not os.path.exists(log_dir_name):
+            os.mkdir(log_dir_name)
         log_file_path = log_dir_name
 
         self.log_file_name = log_file_name
