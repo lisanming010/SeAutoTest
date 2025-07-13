@@ -180,9 +180,10 @@ class AssertCheck():
                 vm_name_button.click()
                 vnic_num = self.vm_conf['vm_nic_num']
                 try:
-                    vnic_selector = self.vmconf_details_selector.ele_selection('vnic', find_list=True)
+                    vnic_selector = self.vmconf_details_selector.ele_selection('vnics', find_list=True)
                     curr_vnic_num = len(vnic_selector)
                 except seEception.NoSuchElementException:
+                    # 不添加网卡时落入该分支
                     pass
                 if curr_vnic_num != vnic_num:
                     self.logger.error(f"虚拟机实际网卡数量与配置期望数量不符，期望数量：{vnic_num}, 实际数量：{curr_vnic_num}")
@@ -192,8 +193,14 @@ class AssertCheck():
                         vnic_order = f'{i+1}'
                         vnic_name = f'vm_nic{vnic_order}'
                         vnic_conf = self.vm_conf[vnic_name]
+
+                        vnic_curr_overview_button = self.vmconf_details_selector.ele_selection('vnic_overview', ele_replace=vnic_order)
+                        vnic_curr_overview_text = vnic_curr_overview_button.text.strip()
+                        self.logger.debug(f'{vnic_curr_overview_text}')
+                        # sleep(300)
                         '''MAC配置检查'''
                         mac = vnic_conf['mac_addr']
+
                         
                 # if (
                 #     (self.vm_conf['is_use_ipv4'] != '' and self.vm_conf['ipv4_addr'] != '') and

@@ -64,5 +64,5 @@ class FindEles:
                 ele = self.driver.find_element(By.XPATH, ele_find_path)
             return ele, ele_name
         else:
-            raise ('未定义的定位方式')
+            raise NameError(f'未定义的定位方式{ele_find_by}')
 

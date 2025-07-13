@@ -34,7 +34,7 @@ class EleAction():
  
         if ele_kind == '':
             if ele_replace == '':
-                return self._ele_find(page_name, ele_name, find_list)
+                return self._ele_find(page_name, ele_name, find_list=find_list)
             else:
                 return self._ele_find(page_name, ele_name, replace_target=ele_replace, find_list=find_list)
 

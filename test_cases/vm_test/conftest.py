@@ -89,6 +89,7 @@ def create_vm(request, login_driver):
 
     ele_find.find_ele('page_head_index', 'compute_button').click()
     ele_find.find_ele('computer_list_head', 'create_vm_button').click()
+    sleep(1)
 
     # 部署方式
     if vm_create_conf['create_vm_method'] != '':
@@ -122,7 +123,7 @@ def create_vm(request, login_driver):
                                         target_option_repalce=storage_name)
         ele_action.click('vm_name_input', vm_create_conf['vm_name'])
 
-    sleep(3)
+    sleep(1)
     # 调度方式选择
     schedule_type = vm_create_conf['schedule_type']
     if schedule_type != '':
@@ -137,7 +138,6 @@ def create_vm(request, login_driver):
 
     # 展开更多设置
     ele_action.click('more_setup')
-
     # 是否创建完成后自动拉起
     auto_start = vm_create_conf['auto_start']
     auto_star_checkbox = ele_find.find_ele(page_name, 'startup_setup_checkbox')
