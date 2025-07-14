@@ -13,7 +13,7 @@ vm_create_conf = {
         'group_name': '<默认分组>',
         'storage_pool_name': '<xsky>',
         'schedule_type': '<指定主机>',
-        'host_ip': '<10.16.221.155>',
+        'host_ip': '<10.16.221.154>',
         'auto_start': True,
         'system_type': '<Windows>',
         'boot_type': '<UEFI>',

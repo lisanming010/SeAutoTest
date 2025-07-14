@@ -175,9 +175,11 @@ class AssertCheck():
                 if not assert_flag:
                     return assert_flag
                 
-                '''虚拟机IP设置判断'''
+                '''虚拟机网卡相关配置校验'''
+                vm_list_ips = self.vm_list_get_allIp(vm_id)
                 curr_vnic_num = 0
                 vm_name_button.click()
+                sleep(2)
                 vnic_num = self.vm_conf['vm_nic_num']
                 try:
                     vnic_selector = self.vmconf_details_selector.ele_selection('vnics', find_list=True)
@@ -185,45 +187,46 @@ class AssertCheck():
                 except seEception.NoSuchElementException:
                     # 不添加网卡时落入该分支
                     pass
+
                 if curr_vnic_num != vnic_num:
                     self.logger.error(f"虚拟机实际网卡数量与配置期望数量不符，期望数量：{vnic_num}, 实际数量：{curr_vnic_num}")
                     return 0
-                if vnic_num > 0:
+                elif curr_vnic_num == vnic_num == 0:
+                    self.logger.debug('虚拟机网卡相关配置校验通过！虚拟机未绑定网卡')
+                elif curr_vnic_num == vnic_num:
                     for i in range(vnic_num):
                         vnic_order = f'{i+1}'
                         vnic_name = f'vm_nic{vnic_order}'
                         vnic_conf = self.vm_conf[vnic_name]
 
                         vnic_curr_overview_button = self.vmconf_details_selector.ele_selection('vnic_overview', ele_replace=vnic_order)
+                        # 输出网卡概览：IP(mac：不启用DHCP的交换机)|交换机名称|防火墙
                         vnic_curr_overview_text = vnic_curr_overview_button.text.strip()
-                        self.logger.debug(f'{vnic_curr_overview_text}')
-                        # sleep(300)
+                        vnic_curr_overview_list = vnic_curr_overview_text.split('|')
+
+                        '''上行交换机验证'''
+                        # 网卡侧
+                        if vnic_curr_overview_list[1].strip() not in vnic_conf['uplink_switch_name']:
+                            self.logger.error(f"网卡校验失败，网卡上行交换机与预期不符，预期上行{vnic_conf['uplink_switch_name']}，\
+                                              实际上行{vnic_curr_overview_list[1]}")
+                            return 0
+                        vnic_curr_overview_button.click()
+                        sleep(0.5)
+                        vnic_detail = self.vmconf_details_selector.ele_selection('vnic_detail', ele_replace=vnic_order, find_list=True)
+                        nic_detail_dict = {}
+                        for i in vnic_detail:
+                            key, value = i.text.split('\n')
+                            if '管理子IP' in value:
+                                value, _ = value.split(' ')
+                            nic_detail_dict[key] = value
+                        self.logger.debug(nic_detail_dict)
+
+                        '''IP地址验证'''
+
+
                         '''MAC配置检查'''
                         mac = vnic_conf['mac_addr']
-
-                        
-                # if (
-                #     (self.vm_conf['is_use_ipv4'] != '' and self.vm_conf['ipv4_addr'] != '') and
-                #     (self.vm_conf['is_use_ipv6'] != '' and self.vm_conf['ipv6_addr'] != '')
-                # ):
-                #     # 同时启用IPv4和IPv6
-                #     pass
-                # elif self.vm_conf['is_use_ipv4'] != '' and self.vm_conf['ipv4_addr'] != '':
-                #     dvswitch_name = self.vm_conf['uplink_switch_name']
-                #     dvswitch_text = GetRowText(self.driver, self.logger).dvswitch_row_text(dvswitch_name)
-                #     #连接到不启用DHCP的交换机，即指定IP
-                #     if dvswitch_text['dvswitch_IPv4_seg'] == '':
-                #         vm_ip_address_ele = self.vm_list_selector.ele_selection('vm_ip_address', vm_id)
-                #         vm_ip_address = vm_ip_address_ele.text.strip()
-                #         if vm_ip_address != self.vm_conf['ipv4_addr']:
-                #             assert_flag = 0
-                #             self.logger.error(f'虚拟机{vm_name}IP错误，指定IP为：{self.vm_conf["vm_conf"]},\
-                #                             实际虚拟机IP为：{vm_ip_address}')
-                #             return assert_flag
-                # elif self.vm_conf['is_use_ipv6'] != '' and self.vm_conf['ipv6_addr'] != '':
-                #     pass
-                    
-                
+            
                 '''所属节点判断'''
                 vm_host = vm_line_text[4]
                 if self.vm_conf['schedule_type'] == '<指定主机>':
