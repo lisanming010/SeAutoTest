@@ -1,7 +1,8 @@
 from utils.ele_action import EleAction
 import ipaddress
+import re
 
-class Tools():
+class NetTools():
     def __init__(self, driver, logger):
         self.driver = driver
         self.logger = logger
@@ -77,3 +78,21 @@ class Tools():
                     ip_list.append(str(curr_ip))
                     curr_ip += 1
         return ip_list
+    
+class OtherTools():
+    def mk_match_valid_string(self, title, curr_conf, des_conf)-> str:
+        '''
+        :title: 校验类别名称
+        :curr_conf: 当前实际采集到的配置信息
+        :des_conf: 期望的配置信息
+        '''
+        return f'{title}校验失败，期望配置为：{curr_conf}, 实际配置为：{des_conf}'
+    
+    def replace_str_extraction(self, string)-> str:
+        '''
+        替换字符串提取，<replace> -> replace
+
+        :string: 需要提取的字符串
+        '''
+        result = re.sub(r'[<>]', '', string)
+        return result

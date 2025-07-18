@@ -11,7 +11,7 @@ vm_create_conf = {
         'vm_name': 'SeTestCreate',
         'vcluster': '<Aarch64默认集群>',
         'group_name': '<默认分组>',
-        'storage_pool_name': '<xsky>',
+        'storage_pool_name': '<hps>',
         'schedule_type': '<指定主机>',
         'host_ip': '<10.16.221.154>',
         'auto_start': True,
@@ -33,7 +33,7 @@ vm_create_conf = {
             'is_use_ipv4': True,
             'ipv4_addr': '192.168.2.100',
             'ipv4_prefix': '255.255.255.0',
-            'ipv4_gateway': '1192.168.2.254',
+            'ipv4_gateway': '192.168.2.254',
             'ipv4_subip_is_use': False,
             'ipv4_subip_set_mode': '指定',
             'ipv4_subip_random_nums': 2,
@@ -57,7 +57,7 @@ vm_create_conf = {
             'is_external_iso': False,
             'iso_name_or_link': '<openEuler-22.03-LTS-SP1-aarch64-dvd.iso>',
             'iso_file_id': '<file-00c1c237d7>',
-            'associated_storage_pool': '<本地池-10.16.221.154-sde>'
+            'associated_storage_pool': '<hps>'
         },
         'usb_num': 0,
         'usb1': '',
