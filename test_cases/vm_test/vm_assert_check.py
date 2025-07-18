@@ -165,6 +165,9 @@ class AssertCheck():
                 loop_time -= 1
         return assert_flag                    
 
+    def match_validation(self, curr_):
+        pass
+
     def get_vnic_all_conf(self, vnic_order, vmconf_details_selector)-> dict:
         '''
         方法调用前需要先进入对应虚拟机详情页面
@@ -232,7 +235,7 @@ class AssertCheck():
                     return 0
                 
                 vnic_conf_fire_wall_name = '无' if vnic_conf['firewall_name'] == '' else self.otools.replace_str_extraction(vnic_conf['firewall_name'])
-                if vnic_conf_fire_wall_name not in nic_detail_dict['防火墙']:
+                if vnic_conf_fire_wall_name == nic_detail_dict['防火墙']:
                     self.logger.error(
                         self.otools.mk_match_valid_string('防火墙', nic_detail_dict['防火墙'], vnic_conf_fire_wall_name)
                     )
@@ -241,7 +244,7 @@ class AssertCheck():
                 vnic_is_online = '已上线' if vnic_conf['is_online'] else '已下线'
                 if vnic_is_online == nic_detail_dict['网卡状态']:
                     self.logger.error(
-                        self.otools.mk_match_valid_string('网卡状态')
+                        self.otools.mk_match_valid_string('网卡状态', nic_detail_dict['网卡状态'], vnic_is_online)
                     )
                     return 0
                 
@@ -270,7 +273,7 @@ class AssertCheck():
                     self.logger.error(
                         self.otools.mk_match_valid_string('网卡出站带宽限制', nic_detail_dict['出站带宽限制'], vnic_out_bandwidth)
                     )
-
+        return 1
                 
 
     def vm_list_ip_check(self, vm_id, vnic_conf:dict):
@@ -344,6 +347,8 @@ class AssertCheck():
                 
                 '''虚拟机网卡相关配置校验'''
                 assert_flag = self.vnic_conf_check(vm_id, vm_name_button, self.vm_conf)
+                if not assert_flag:
+                    return assert_flag
 
                 '''IP地址验证'''
             
