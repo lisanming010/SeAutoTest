@@ -80,13 +80,18 @@ class NetTools():
         return ip_list
     
 class OtherTools():
-    def mk_match_valid_string(self, title, curr_conf, des_conf)-> str:
+    def __init__(self, logger):
+        self.logger = logger
+        
+    def mk_match_valid_string(self, title, curr_conf, des_conf, is_pass=False)-> str:
         '''
         :title: 校验类别名称
         :curr_conf: 当前实际采集到的配置信息
         :des_conf: 期望的配置信息
+        :is_pass: 校验结果
         '''
-        return f'{title}校验失败，期望配置为：{curr_conf}, 实际配置为：{des_conf}'
+        result = '失败' if is_pass == False else '通过'
+        return f'{title}校验{result}，期望值为：{des_conf}, 实际值为：{curr_conf}'
     
     def replace_str_extraction(self, string)-> str:
         '''
@@ -96,3 +101,27 @@ class OtherTools():
         '''
         result = re.sub(r'[<>]', '', string)
         return result
+    
+    def match_vaildtion(self, vaildation_item, des_value, curr_value, use_in=False)-> bool:
+        '''
+        值相等校验
+
+        :vaildation_item: 校验项名称
+        :des_value: 期望值
+        :curr_value: 实际值
+        :use_in: 比较方法是否使用 in ,默认False
+        '''
+        assert_flag = 1
+        if use_in:
+            if des_value != curr_value:
+                assert_flag = 0
+        else:
+            if des_value not in curr_value:
+                assert_flag = 0
+
+        is_pass = True if assert_flag else False
+        self.logger.error(
+            self.mk_match_valid_string(vaildation_item, str(curr_value), str(des_value), is_pass=is_pass)
+        )
+
+        return assert_flag

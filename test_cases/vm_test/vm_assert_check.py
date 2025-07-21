@@ -80,7 +80,7 @@ class AssertCheck():
         self.logger = logger
         self.vm_conf = vm_conf
         
-        self.otools = OtherTools()
+        self.otools = OtherTools(self.logger)
         ele_find = FindEles(self.driver, self.logger)
         self.vm_list_selector = EleAction(self.driver, ele_find, 'vm_list', self.logger)
         self.vmconf_details_selector = EleAction(self.driver, ele_find, 'vm_hw_conf_details', self.logger)
@@ -227,6 +227,7 @@ class AssertCheck():
                 sleep(0.5)
                 # 获取当前网卡除子IP外的全部配置项
                 nic_detail_dict = self.get_vnic_all_conf(vnic_order, self.vmconf_details_selector)
+                self.logger.debug(nic_detail_dict)
                 
                 if vnic_conf['mac_addr'] != '' and vnic_conf['mac_addr'] != nic_detail_dict['MAC地址']:
                     self.logger.error(
@@ -235,44 +236,30 @@ class AssertCheck():
                     return 0
                 
                 vnic_conf_fire_wall_name = '无' if vnic_conf['firewall_name'] == '' else self.otools.replace_str_extraction(vnic_conf['firewall_name'])
-                if vnic_conf_fire_wall_name == nic_detail_dict['防火墙']:
-                    self.logger.error(
-                        self.otools.mk_match_valid_string('防火墙', nic_detail_dict['防火墙'], vnic_conf_fire_wall_name)
-                    )
-                    return 0
+                assert_flag = self.otools.match_vaildtion('防火墙', vnic_conf_fire_wall_name, 
+                                                          self.otools.replace_str_extraction(nic_detail_dict['防火墙']))
+                if not assert_flag:
+                    return assert_flag
 
                 vnic_is_online = '已上线' if vnic_conf['is_online'] else '已下线'
-                if vnic_is_online == nic_detail_dict['网卡状态']:
-                    self.logger.error(
-                        self.otools.mk_match_valid_string('网卡状态', nic_detail_dict['网卡状态'], vnic_is_online)
-                    )
+                if not self.otools.match_vaildtion('网卡状态', vnic_is_online, nic_detail_dict['网卡状态']):
                     return 0
                 
-                if nic_detail_dict['交换机'] == self.otools.replace_str_extraction(vnic_conf['uplink_switch_name']):
-                    self.logger.error(
-                        self.otools.mk_match_valid_string('上行交换机', vnic_conf['uplink_switch_name'], nic_detail_dict['交换机'])
-                    )
+                if not self.otools.match_vaildtion('上行交换机', self.otools.replace_str_extraction(vnic_conf['uplink_switch_name']),
+                                                   nic_detail_dict['交换机']):
                     return 0
 
                 vnic_is_use_ipcheck = '已开启' if vnic_conf['is_ipcheck'] else '未开启'
-                if vnic_is_use_ipcheck == nic_detail_dict['IP地址检查']:
-                    self.logger.error(
-                        self.otools.mk_match_valid_string('是否启用IP地址检查', nic_detail_dict['IP地址检查'], vnic_is_use_ipcheck)
-                    )
+                if not self.otools.match_vaildtion('是否启用IP地址检查', vnic_is_use_ipcheck, nic_detail_dict['IP地址检查']):
                     return 0
                 
                 vnic_in_bandwidth = '不启用' if vnic_conf['in_bandwidth'] == '' else vnic_conf['in_bandwidth'].split(' ')[0]
-                if vnic_in_bandwidth == nic_detail_dict['入站带宽限制']:
-                    self.logger.error(
-                        self.otools.mk_match_valid_string('网卡入站带宽限制', nic_detail_dict['入站带宽限制'], vnic_in_bandwidth)
-                    )
+                if not self.otools.match_vaildtion('入站带宽限制', vnic_in_bandwidth, nic_detail_dict['入站带宽限制']):
                     return 0
                 
                 vnic_out_bandwidth = '不启用' if vnic_conf['out_bandwidth'] == '' else vnic_conf['out_bandwidth'].split(' ')[0]
-                if vnic_out_bandwidth == nic_detail_dict['出站带宽限制']:
-                    self.logger.error(
-                        self.otools.mk_match_valid_string('网卡出站带宽限制', nic_detail_dict['出站带宽限制'], vnic_out_bandwidth)
-                    )
+                if not self.otools.match_vaildtion('出站带宽限制', vnic_out_bandwidth, nic_detail_dict['出站带宽限制']):
+                    return 0
         return 1
                 
 
