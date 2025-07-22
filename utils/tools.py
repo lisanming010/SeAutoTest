@@ -120,7 +120,7 @@ class OtherTools():
                 assert_flag = 0
 
         is_pass = True if assert_flag else False
-        self.logger.error(
+        self.logger.debug(
             self.mk_match_valid_string(vaildation_item, str(curr_value), str(des_value), is_pass=is_pass)
         )
 
