@@ -189,6 +189,13 @@ class AssertCheck():
         return nic_detail_dict
 
     def vnic_conf_check(self, vm_id, vm_name_button, vm_conf)-> bool:
+        '''
+        虚拟机网卡配置校验
+
+        :vm_id :虚拟机ID
+        :vm_name_button :虚拟机名称selector
+        :vm_conf :虚拟机配置dict
+        '''
         vm_list_ips = self.vm_list_get_allIp(vm_id)
         curr_vnic_num = 0
         vm_name_button.click()
@@ -260,6 +267,24 @@ class AssertCheck():
                 vnic_out_bandwidth = '不启用' if vnic_conf['out_bandwidth'] == '' else vnic_conf['out_bandwidth'].split(' ')[0]
                 if not self.otools.match_vaildtion('出站带宽限制', vnic_out_bandwidth, nic_detail_dict['出站带宽限制']):
                     return 0
+                
+                # IP校验
+                for ip_ver in ['IPv4', 'IPv6']:
+                    # 主IP校验
+                    
+
+                    # 子IP校验
+                    if vm_conf[f'{ip_ver}_subip_is_use'] == False:
+                        if not self.otools.match_vaildtion(f'{ip_ver}子IP配置检查', nic_detail_dict[f'{ip_ver}子IP地址'], '<空>'):
+                            return 0
+                    else:
+                        # 指定IP时直接校验指定的IP是否在子列表中拿到的全部IP的list中
+                        if vm_conf[f'{ip_ver}_subip_set_mode'] == '指定':
+                            pass
+
+                        # 随机IP时校验IP数量是否一致
+                        if vm_conf[f'{ip_ver}_subip_set_mode'] == '随机':
+                            pass
         return 1
                 
 

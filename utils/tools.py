@@ -104,7 +104,7 @@ class OtherTools():
     
     def match_vaildtion(self, vaildation_item, des_value, curr_value, use_in=False)-> bool:
         '''
-        值相等校验
+        值相等校验，相等->True,不等->false
 
         :vaildation_item: 校验项名称
         :des_value: 期望值
