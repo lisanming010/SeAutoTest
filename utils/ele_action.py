@@ -4,7 +4,7 @@ from selenium.webdriver.common.keys import Keys
 from time import sleep
 from typing import TYPE_CHECKING
 
-class EleAction():
+class EleAction:
     def __init__(self, driver, ele_find, page_name: str, logger):
         '''
         selenium部分动作包装类

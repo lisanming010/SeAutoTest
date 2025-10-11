@@ -2,7 +2,7 @@ from utils.ele_action import EleAction
 import ipaddress
 import re
 
-class NetTools():
+class NetTools:
     def __init__(self, driver, logger):
         self.driver = driver
         self.logger = logger
@@ -79,7 +79,7 @@ class NetTools():
                     curr_ip += 1
         return ip_list
     
-class OtherTools():
+class OtherTools:
     def __init__(self, logger):
         self.logger = logger
         

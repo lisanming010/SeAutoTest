@@ -66,7 +66,7 @@ vm_create_conf = {
 }
 
 @allure.feature('虚拟机创建')
-class TestVmCreate():
+class TestVmCreate:
 
     @pytest.mark.parametrize('create_vm', [vm_create_conf], indirect=True)
     @allure.story('创建全新虚拟机')

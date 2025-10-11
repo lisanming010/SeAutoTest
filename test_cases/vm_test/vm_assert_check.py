@@ -6,7 +6,7 @@ from time import sleep
 from utils.tools import NetTools,OtherTools
 import selenium.common.exceptions as seEception
 
-class VMConfTools():
+class VMConfTools:
     def __init__(self, logger):
         self.logger = logger
 
@@ -67,7 +67,7 @@ class VMConfTools():
             return ip_dict
     
 
-class AssertCheck():
+class AssertCheck:
     def __init__(self, driver, logger, vm_conf: dict):
         '''
         虚拟机相关断言判定
