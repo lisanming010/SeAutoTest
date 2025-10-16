@@ -40,7 +40,7 @@ class EleAction:
 
 
         #分页控件便利页面查询
-        self.driver.implicitly_wait(0)
+        self.driver.implicitly_wait(1)
         while True:
             try:
                 if ele_replace == '':
@@ -63,6 +63,7 @@ class EleAction:
                         self.driver.implicitly_wait(10)
                         raise not_fond_ele_target_option
                     else:
+                        self.driver.implicitly_wait(3)
                         page_down_button.click()
                         sleep(0.5)
             else:

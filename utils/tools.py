@@ -1,4 +1,5 @@
 from utils.ele_action import EleAction
+from pages_selector.find_element import FindEles
 import ipaddress
 import re
 
@@ -15,12 +16,17 @@ class NetTools:
         
         :dvswitch_name: 分布式交换机名称
         '''
-        page_name = 'dvswitch'
-        ele_action = EleAction(self.driver, page_name, self.logger)
-        dvswitch_id = ele_action.ele_selection('dvswitch_id', dvswitch_name).text.strip()
-        dvswitch_row = ele_action.ele_selection('dvswitch_row', dvswitch_id).text.strip().split('\n')
-        dvswitch_uplink = ele_action.ele_selection('uplink_button', dvswitch_id).text.strip().split('\n')
-        dvswitch_create_time = ele_action.ele_selection('create_time', dvswitch_id).text.strip().split('\n')
+        find_ele = FindEles(self.driver, self.logger)
+
+        menu_ele_action = EleAction(self.driver, find_ele, 'page_head_index', self.logger)
+        menu_ele_action.click('network_button')
+        second_menu_action = EleAction(self.driver, find_ele, 'second_head_index', self.logger)
+        second_menu_action.click('button', '分布式交换机')
+
+        dv_switch_ele_action = EleAction(self.driver, find_ele, 'dvswitch', self.logger)
+        dvswitch_row = dv_switch_ele_action.ele_selection('dvswitch_id', dvswitch_name, ele_kind='list').text.strip().split('\n')
+        dvswitch_uplink = dvswitch_row[-2]
+        dvswitch_create_time = dvswitch_row[-1]
         # 处理dvswitch_row列表，添加缺失的元素
         if dvswitch_row[5] == '-':
             dvswitch_row.insert(5, '-')
@@ -52,7 +58,8 @@ class NetTools:
         
         return dvswitch_row_dict
     
-    def ip_handle(self, ip_type, ip_str)-> list:
+    @staticmethod
+    def ip_handle(ip_type, ip_str)-> list:
         '''
         离散、连续IP处理，"fd02:aa1::aa1-fd02:aa1::aa3,fd02:aa1::aa8" 
                         -> ['fd02:aa1::aa1', 'fd02:aa1::aa2', 'fd02:aa1::aa3', 'fd02:aa1::aa8']
@@ -63,9 +70,9 @@ class NetTools:
         ip_list = []
         ip_list_temp = ip_str.split(',')
         for i in ip_list_temp:
-            if '-' not in ip_list_temp:
+            if '-' not in i:
                 ip_list.append(i)
-            elif '-' in ip_list_temp:
+            elif '-' in i:
                 start_ip, end_ip = i.split('-')
                 if ip_type == 'ipv6':
                     start_ip = ipaddress.IPv6Address(start_ip)

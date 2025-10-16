@@ -5,67 +5,7 @@ from utils.ele_action import EleAction
 from time import sleep
 from utils.tools import NetTools,OtherTools
 import selenium.common.exceptions as seEception
-
-class VMConfTools:
-    def __init__(self, logger):
-        self.logger = logger
-
-    def vm_list_get_allIp(self, vm_id)-> dict:
-        '''
-        获取虚拟机列表中虚拟机所有IP
-
-        :vm_id: 虚拟机ID
-        -> dict{'IPv4':[], 'IPv6':[]}
-        '''
-
-        ip_dict = {
-            'IPv4': [],
-            'IPv6': []
-        }
-        try:
-            ip_expan_button = self.vm_list_selector.ele_selection('vm_ip_address_expan')
-        except seEception.NoSuchElementException:
-            # 未定位到展开按钮时默认判定为单个IP，可能存在定位异常时误判
-            ip_addr_text = self.vm_list_selector.ele_selection('vm_ip_address', vm_id).text.strip()
-            if '.' in ip_addr_text:
-                ip_dict['IPv4'].append(ip_addr_text)
-            elif ':' in ip_addr_text:
-                ip_dict['IPv6'].append(ip_addr_text)
-            return ip_dict
-        
-        else:
-            # 多IP展开逻辑分支
-            ActionChains(self.driver).move_to_element(ip_expan_button).perform()
-            ip_expan_text = self.vm_list_selector.ele_selection('vm_ip_address_expan_text').text.strip().split('\n')
-            if '更多' in ip_expan_text:
-                ip_more_button = self.vm_list_selector.ele_selection('vm_ip_address_expan_more')
-                ActionChains(self.driver).move_to_element(ip_more_button).click(ip_more_button).perform()
-                pgdown_button = self.general_common.ele_selection('popup_list_pgdown')
-                ip_list_temp = []
-                while True:
-                    ip_list_temp.extend(self.vm_list_selector.ele_selection('vm_ip_list').text.strip().split())
-                    if 'ivu-page-disabled' not in pgdown_button.get_attribute('class'):
-                        break
-                    else:
-                        pgdown_button.click()
-                # 列表处理       
-                for i in ip_list_temp:
-                    if '.' in i:
-                        ip_dict['IPv4'].append(i)
-                    elif ':' in i:
-                        ip_dict['IPv6'].append(i)
-            else:
-                key = 'IPv4'
-                for i in ip_expan_text:
-                    if 'IPv4' in i:
-                        key = 'IPv4'
-                        continue
-                    elif 'IPv6' in i:
-                        key = 'IPv6'
-                        continue
-                    ip_dict[key].append(i)
-            return ip_dict
-    
+  
 
 class AssertCheck:
     def __init__(self, driver, logger, vm_conf: dict):
@@ -99,7 +39,7 @@ class AssertCheck:
             'IPv6': []
         }
         try:
-            ip_expan_button = self.vm_list_selector.ele_selection('vm_ip_address_expan')
+            ip_expan_button = self.vm_list_selector.ele_selection('vm_ip_address_expan', vm_id)
         except seEception.NoSuchElementException:
             # 未定位到展开按钮时默认判定为单个IP，可能存在定位异常时误判
             ip_addr_text = self.vm_list_selector.ele_selection('vm_ip_address', vm_id).text.strip()
@@ -165,9 +105,6 @@ class AssertCheck:
                 loop_time -= 1
         return assert_flag                    
 
-    def match_validation(self, curr_):
-        pass
-
     def get_vnic_all_conf(self, vnic_order, vmconf_details_selector)-> dict:
         '''
         方法调用前需要先进入对应虚拟机详情页面
@@ -187,6 +124,74 @@ class AssertCheck:
                 value, _ = value.split(' ')
             nic_detail_dict[key] = value
         return nic_detail_dict
+
+    @staticmethod
+    def get_except_ips(vnic_conf:dict)->dict:
+        """
+        从配置文件中提取目标IP配置，包含主IP以及子IP
+
+        :vnic_conf: 网卡配置文件
+        -> {'ipv4':[], 'ipv6':[]}
+        """
+        ip_except_dict = {}
+        for ip_type in ['ipv4', 'ipv6']:
+            except_list = []
+            if vnic_conf[f'is_use_{ip_type}']:
+                main_ip = vnic_conf[f'{ip_type}_addr']
+                except_list.append(main_ip)
+                if vnic_conf[f'{ip_type}_subip_is_use']:
+                    if vnic_conf[f'{ip_type}_subip_set_mode'] == '指定':
+                        sub_ip_list = NetTools.ip_handle(ip_type, vnic_conf[f'{ip_type}_subip_appoint_addr'])
+                        except_list += sub_ip_list
+                    elif vnic_conf[f'{ip_type}_subip_set_mode'] == '随机':
+                        for i in range(vnic_conf[f'{ip_type}_subip_random_nums']):
+                            except_list.append(f'random_ip_placeholder{i}')
+            ip_except_dict[ip_type] = except_list
+        return ip_except_dict
+
+    def vm_list_ip_check(self, actual_ip_dict:dict, vnic_conf:dict):
+        self.logger.debug(f'actual_ip_dict:{actual_ip_dict}')
+        self.logger.debug('run in vm_list_ip_check')
+        nettool = NetTools(self.driver, self.logger)
+        assert_flag = 1
+
+        is_use_ipv4 = vnic_conf['is_use_ipv4']
+        ipv4_addr = vnic_conf['ipv4_addr']
+        is_use_ipv6 = vnic_conf['is_use_ipv6']
+        ipv6_addr = vnic_conf['ipv6_addr']
+
+        uplink_switch_name = vnic_conf['uplink_switch_name']
+        dvswith_info_dict = nettool.dvswitch_row_text(uplink_switch_name)
+        self.logger.debug(dvswith_info_dict)
+        ip_except_dict = self.get_except_ips(vnic_conf)
+        # 连接到启用DHCP的交换机，仅校验是否获取IP
+        if dvswith_info_dict['dvswitch_IPv4_seg'] != '-':
+            #连接到启用了DHCP的交换机
+            pass
+        elif dvswith_info_dict['dvswitch_IPv4_seg'] == '-':
+            # IP地址比对
+            for ip_type, actual_ips in actual_ip_dict.items():
+                if assert_flag == 0:
+                    break
+                except_ip_list = ip_except_dict[ip_type.lower()]
+                while True:
+                    if actual_ips == []:
+                        break
+                    actual_ip = actual_ips.pop()
+                    try:
+                        except_ip_list.remove(actual_ip)
+                    except ValueError:
+                        self.logger.error(f'IP校验失败，实际IP：{actual_ip}不在期望IP列表中，期望IP列表：{except_ip_list}')
+                        assert_flag = 0
+                        break
+                
+                if actual_ips != []:
+                    self.logger.error(f'IP校验失败，实际捕获IP多余指定IP，实际多余IP:{actual_ips}')
+                    assert_flag = 0
+                if except_ip_list != []:
+                    self.logger.error(f'IP校验失败，实际捕获IP少于指定IP，未配置IP：{except_ip_list}')
+                    assert_flag = 0
+        return assert_flag
 
     def vnic_conf_check(self, vm_id, vm_name_button, vm_conf)-> bool:
         '''
@@ -208,6 +213,7 @@ class AssertCheck:
             # 不添加网卡时落入该分支
             pass
 
+        # 网卡数量校验
         if curr_vnic_num != vnic_num:
             self.logger.error(self.otools.mk_match_valid_string('网卡数量', curr_vnic_num, vnic_num))
             return 0
@@ -235,7 +241,8 @@ class AssertCheck:
                 # 获取当前网卡除子IP外的全部配置项
                 nic_detail_dict = self.get_vnic_all_conf(vnic_order, self.vmconf_details_selector)
                 self.logger.debug(nic_detail_dict)
-                
+                # self.vmconf_details_selector.click('step_back')
+                                
                 if vnic_conf['mac_addr'] != '' and vnic_conf['mac_addr'] != nic_detail_dict['MAC地址']:
                     self.logger.error(
                         self.otools.mk_match_valid_string('mac地址', nic_detail_dict['MAC地址'], vnic_conf['mac_addr'])
@@ -269,56 +276,9 @@ class AssertCheck:
                     return 0
                 
                 # IP校验
-                for ip_ver in ['IPv4', 'IPv6']:
-                    # 主IP校验
-                    
-
-                    # 子IP校验
-                    if vm_conf[f'{ip_ver}_subip_is_use'] == False:
-                        if not self.otools.match_vaildtion(f'{ip_ver}子IP配置检查', nic_detail_dict[f'{ip_ver}子IP地址'], '<空>'):
-                            return 0
-                    else:
-                        # 指定IP时直接校验指定的IP是否在子列表中拿到的全部IP的list中
-                        if vm_conf[f'{ip_ver}_subip_set_mode'] == '指定':
-                            pass
-
-                        # 随机IP时校验IP数量是否一致
-                        if vm_conf[f'{ip_ver}_subip_set_mode'] == '随机':
-                            pass
-        return 1
-                
-
-    def vm_list_ip_check(self, vm_id, vnic_conf:dict):
-        assert_flag = 1
-
-        is_use_ipv4 = vnic_conf['is_use_ipv4']
-        ipv4_addr = vnic_conf['ipv4_addr']
-        is_use_ipv6 = vnic_conf['is_use_ipv6']
-        ipv6_addr = vnic_conf['ipv6_addr']
-
-        ip_dict = self.vm_list_get_allIp(vm_id)
-        uplink_switch_name = vnic_conf['uplink_switch_name']
-        dvswith_info_dict = NetTools.dvswitch_row_text(uplink_switch_name)
-        # 连接到启用DHCP的交换机，仅校验是否获取IP
-        if dvswith_info_dict['dvswitch_IPv4_seg'] != '-':
-            #连接到启用了DHCP的交换机
-            pass
-        elif dvswith_info_dict['dvswitch_IPv4_seg'] == '-':
-            #连接到不启用DHCP的交换机
-            ipv4_list = []
-            if is_use_ipv4:
-                ipv4_main_ip = vnic_conf['ipv4_addr']
-                ipv4_list.append(ipv4_main_ip)
-                if vnic_conf['ipv4_subip_is_use']:
-                    if vnic_conf['ipv4_subip_set_mode'] == '指定':
-                        sub_ip_list = NetTools.ip_handle('ipv4', vnic_conf['ipv4_subip_appoint_addr'])
-                        ipv4_list.extend(sub_ip_list)
-                    elif vnic_conf['ipv4_subip_set_mode'] == '随机':
-                        for i in range(vnic_conf['ipv4_subip_random_nums']):
-                            ipv4_list.append(f'random_ip_placeholder{i}')
-            if is_use_ipv6:
-                pass
-
+                if self.vm_list_ip_check(vm_list_ips, vnic_conf) == 0:
+                    return 0
+        return 1   
 
     def vm_list_scale_check(self):
         pass
