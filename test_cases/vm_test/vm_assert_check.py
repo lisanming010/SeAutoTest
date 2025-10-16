@@ -5,23 +5,15 @@ from utils.ele_action import EleAction
 from time import sleep
 from utils.tools import NetTools,OtherTools
 import selenium.common.exceptions as seEception
-  
 
-class AssertCheck:
+class VNicCheck:
     def __init__(self, driver, logger, vm_conf: dict):
-        '''
-        虚拟机相关断言判定
-
-        :driver: webdriver
-        :logger: 实例化完成的logger类
-        :vm_conf: 虚拟机创建配置，dict
-        '''
         self.driver = driver
         self.logger = logger
         self.vm_conf = vm_conf
-        
-        self.otools = OtherTools(self.logger)
+
         ele_find = FindEles(self.driver, self.logger)
+        self.otools = OtherTools(self.logger)
         self.vm_list_selector = EleAction(self.driver, ele_find, 'vm_list', self.logger)
         self.vmconf_details_selector = EleAction(self.driver, ele_find, 'vm_hw_conf_details', self.logger)
         self.general_common = EleAction(self.driver, ele_find, 'general_common', self.logger)
@@ -81,29 +73,6 @@ class AssertCheck:
                         continue
                     ip_dict[key].append(i)
             return ip_dict
-
-    def vm_list_state_check(self, vm_id, desired_state)-> bool:
-        '''
-        虚拟机状态校验
-
-        :vm_id: 虚拟机ID
-        :desired_state: 期望状态
-        -> assert_flag int(0,1)
-        '''
-        assert_flag = 1
-        loop_time = 100
-        while True:
-            sleep(3)
-            vm_curr_state = self.vm_list_selector.ele_selection('vm_stat', vm_id).text.strip()
-            if desired_state in vm_curr_state:
-                break
-            elif loop_time == 0:
-                self.logger.error(f'虚拟机{vm_id}当前状态与预期状态不一致，当前状态:{vm_curr_state},预期状态:{desired_state},dl:{loop_time*3}s')
-                assert_flag = 0
-                break
-            else:
-                loop_time -= 1
-        return assert_flag                    
 
     def get_vnic_all_conf(self, vnic_order, vmconf_details_selector)-> dict:
         '''
@@ -280,6 +249,48 @@ class AssertCheck:
                     return 0
         return 1   
 
+class AssertCheck:
+    def __init__(self, driver, logger, vm_conf: dict):
+        '''
+        虚拟机相关断言判定
+
+        :driver: webdriver
+        :logger: 实例化完成的logger类
+        :vm_conf: 虚拟机创建配置，dict
+        '''
+        self.driver = driver
+        self.logger = logger
+        self.vm_conf = vm_conf
+        
+        self.otools = OtherTools(self.logger)
+        ele_find = FindEles(self.driver, self.logger)
+        self.vm_list_selector = EleAction(self.driver, ele_find, 'vm_list', self.logger)
+        self.vmconf_details_selector = EleAction(self.driver, ele_find, 'vm_hw_conf_details', self.logger)
+        self.general_common = EleAction(self.driver, ele_find, 'general_common', self.logger)
+
+    def vm_list_state_check(self, vm_id, desired_state)-> bool:
+        '''
+        虚拟机状态校验
+
+        :vm_id: 虚拟机ID
+        :desired_state: 期望状态
+        -> assert_flag int(0,1)
+        '''
+        assert_flag = 1
+        loop_time = 100
+        while True:
+            sleep(3)
+            vm_curr_state = self.vm_list_selector.ele_selection('vm_stat', vm_id).text.strip()
+            if desired_state in vm_curr_state:
+                break
+            elif loop_time == 0:
+                self.logger.error(f'虚拟机{vm_id}当前状态与预期状态不一致，当前状态:{vm_curr_state},预期状态:{desired_state},dl:{loop_time*3}s')
+                assert_flag = 0
+                break
+            else:
+                loop_time -= 1
+        return assert_flag                    
+
     def vm_list_scale_check(self):
         pass
 
@@ -318,7 +329,8 @@ class AssertCheck:
                     return assert_flag
                 
                 '''虚拟机网卡相关配置校验'''
-                assert_flag = self.vnic_conf_check(vm_id, vm_name_button, self.vm_conf)
+                vnic_check = VNicCheck(self.driver, self.logger, self.vm_conf)
+                assert_flag = vnic_check.vnic_conf_check(vm_id, vm_name_button, self.vm_conf)
                 if not assert_flag:
                     return assert_flag
 
@@ -340,4 +352,3 @@ class AssertCheck:
                         vm_distribution[f'{vm_host}'] += 1
 
         return assert_flag
-    
