@@ -10,6 +10,7 @@ selenium = "*"
 selenium-wire = "*"
 allure-pytest = "*"
 pytest-xdist = "*"
+paramiko = "*"
 
 [dev-packages]
 
