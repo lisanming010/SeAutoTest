@@ -202,7 +202,7 @@ def create_vm(request, login_driver):
     vnic_nums = vm_create_conf['vm_nic_num']
     if vnic_nums > 0:
         if vnic_nums > 1:
-            for i in range(vnic_nums):
+            for i in range(vnic_nums - 1):
                 ele_action.click('add_hw_button')
                 ele_action.click('add_hw_vmnic_button')
         for i in range(vnic_nums):
@@ -216,7 +216,7 @@ def create_vm(request, login_driver):
                 if vnic_conf['uplink_switch_name'] != '':
                     ele_action.dropdown_menu_select('vmnic_conf_uplink_selector', 'vmnic_conf_uplink_select_name',
                                                     selector_replace=vnic_order,
-                                                    target_option_repalce=vnic_conf['uplink_switch_name'])
+                                                    target_option_repalce=[vnic_conf['uplink_switch_name'], vnic_order])
                     # ele_action.click('vmnic_conf_uplink_selector_after_click', vnic_order)
                 
                 #mac地址配置
@@ -272,7 +272,7 @@ def create_vm(request, login_driver):
             iso_conf = vm_create_conf[f'iso{iso_order}']
             ele_action.click('optical_driver_button', iso_oder_name)
             if iso_conf != '':
-                if iso_conf['is_external_iso'] is False:
+                if iso_conf['is_external_iso'] == False:
                     replace_list = [iso_conf['associated_storage_pool'], iso_conf['iso_name_or_link']]
                     ele_action.dropdown_menu_select('optical_driver_selector', 'optical_driver_select_name',
                                                     iso_order, replace_list, ele_kind='popup')

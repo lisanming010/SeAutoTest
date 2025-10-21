@@ -86,11 +86,57 @@ class NetTools:
                     curr_ip += 1
         return ip_list
     
+    @staticmethod
+    def get_except_ips(vnic_conf:dict)->dict:
+        """
+        从配置文件中提取目标IP配置，包含主IP以及子IP
+
+        :vnic_conf: 网卡配置文件
+        -> {'ipv4':[], 'ipv6':[]}
+        """
+        ip_except_dict = {}
+        for ip_type in ['ipv4', 'ipv6']:
+            except_list = []
+            if vnic_conf[f'is_use_{ip_type}']:
+                main_ip = vnic_conf[f'{ip_type}_addr']
+                except_list.append(main_ip)
+                if vnic_conf[f'{ip_type}_subip_is_use']:
+                    if vnic_conf[f'{ip_type}_subip_set_mode'] == '指定':
+                        sub_ip_list = NetTools.ip_handle(ip_type, vnic_conf[f'{ip_type}_subip_appoint_addr'])
+                        except_list += sub_ip_list
+                    elif vnic_conf[f'{ip_type}_subip_set_mode'] == '随机':
+                        for i in range(vnic_conf[f'{ip_type}_subip_random_nums']):
+                            except_list.append(f'random_ip_placeholder{i}')
+            ip_except_dict[ip_type] = except_list
+        return ip_except_dict
+    
+    def ip_match(self, actual_ip_dict, ip_except_dict):
+        '''
+        ip对比方法
+
+        :actual_ip_dict: 实际IP字典
+        :ip_except_dict: 期望IP字典
+        ->[assert_flag, except_ip_list]
+        '''
+        assert_flag = 1
+        for ip_type, actual_ips in actual_ip_dict.items():
+            if assert_flag == 0:
+                break
+            except_ip_list = ip_except_dict[ip_type.lower()]
+            actual_diff_ips = list(set(actual_ips) - set(except_ip_list))
+            except_diff_ips = list(set(except_ip_list) - set(actual_ips))
+            if actual_diff_ips != []:
+                assert_flag = 0
+                self.logger.error(f'IP校验失败，实际捕获IP多于指定IP，实际多余IP:{actual_diff_ips}')
+
+        return assert_flag, except_diff_ips
+    
 class OtherTools:
     def __init__(self, logger):
         self.logger = logger
         
-    def mk_match_valid_string(self, title, curr_conf, des_conf, is_pass=False)-> str:
+    @staticmethod    
+    def mk_match_valid_string(title, curr_conf, des_conf, is_pass=False)-> str:
         '''
         :title: 校验类别名称
         :curr_conf: 当前实际采集到的配置信息
@@ -100,7 +146,8 @@ class OtherTools:
         result = '失败' if is_pass == False else '通过'
         return f'{title}校验{result}，期望值为：{des_conf}, 实际值为：{curr_conf}'
     
-    def replace_str_extraction(self, string)-> str:
+    @staticmethod
+    def replace_str_extraction(string)-> str:
         '''
         替换字符串提取，<replace> -> replace
 
