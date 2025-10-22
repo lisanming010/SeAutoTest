@@ -12,11 +12,12 @@ class VNicCheck:
         self.logger = logger
         self.vm_conf = vm_conf
 
-        ele_find = FindEles(self.driver, self.logger)
+        self.ele_find = FindEles(self.driver, self.logger)
         self.otools = OtherTools(self.logger)
-        self.vm_list_selector = EleAction(self.driver, ele_find, 'vm_list', self.logger)
-        self.vmconf_details_selector = EleAction(self.driver, ele_find, 'vm_hw_conf_details', self.logger)
-        self.general_common = EleAction(self.driver, ele_find, 'general_common', self.logger)
+        self.page_head_index = EleAction(self.driver, self.ele_find, 'page_head_index', self.logger)
+        self.vm_list_selector = EleAction(self.driver, self.ele_find, 'vm_list', self.logger)
+        self.vmconf_details_selector = EleAction(self.driver, self.ele_find, 'vm_hw_conf_details', self.logger)
+        self.general_common = EleAction(self.driver, self.ele_find, 'general_common', self.logger)
 
     def vm_list_get_allIp(self, vm_id)-> dict:
         '''
@@ -74,7 +75,7 @@ class VNicCheck:
                     ip_dict[key].append(i)
             return ip_dict
 
-    def get_vnic_all_conf(self, vnic_order, vmconf_details_selector)-> dict:
+    def get_vnic_all_conf(self, vnic_name, vmconf_details_selector)-> dict:
         '''
         方法调用前需要先进入对应虚拟机详情页面
 
@@ -85,8 +86,14 @@ class VNicCheck:
           'IPv4地址': '192.168.2.100', 'IPv4子IP地址': '<空>', '掩码': '255.255.255.0', '网关': '192.168.2.254', 
           '交换机': 'NAT交换机', '交换机微隔离': '未开启', 'IP地址检查': '已开启', '入站带宽限制': '20 Mbps', '出站带宽限制': '25 Mbps'}
         '''
-        vnic_detail = vmconf_details_selector.ele_selection('vnic_detail', ele_replace=vnic_order, find_list=True)
+        vnic_detail = vmconf_details_selector.ele_selection('vnic_detail', ele_replace=vnic_name, find_list=True)
         nic_detail_dict = {}
+
+        # debug code
+        vnic_detail_tmp = [i.text for i in vnic_detail]
+        self.logger.debug(f'vnic_detail:{vnic_detail_tmp}')
+        # 
+
         for i in vnic_detail:
             key, value = i.text.split('\n')
             if '管理子IP' in value:
@@ -95,8 +102,6 @@ class VNicCheck:
         return nic_detail_dict
 
     def vm_list_ip_check(self, actual_ip_dict:dict, vnic_conf:dict):
-        self.logger.debug(f'actual_ip_dict:{actual_ip_dict}')
-        
         assert_flag = 1
         nettool = NetTools(self.driver, self.logger)
 
@@ -110,8 +115,8 @@ class VNicCheck:
             pass
         elif dvswith_info_dict['dvswitch_IPv4_seg'] == '-':
             # IP地址比对
-            assert_flag, except_diff_ip = nettool.ip_match(actual_ip_dict, ip_except_dict)
-        return assert_flag, except_diff_ip
+            assert_flag, actual_diff_ip = nettool.ip_match(actual_ip_dict, ip_except_dict)
+        return assert_flag, actual_diff_ip
 
     def vnic_conf_check(self, vm_id, vm_name_button, vm_conf)-> bool:
         '''
@@ -145,21 +150,15 @@ class VNicCheck:
                 vnic_name = f'vm_nic{vnic_order}'
                 vnic_conf = vm_conf[vnic_name]
 
-                vnic_curr_overview_button = self.vmconf_details_selector.ele_selection('vnic_overview', ele_replace=vnic_order)
-                # 输出网卡概览：IP(mac：不启用DHCP的交换机)|交换机名称|防火墙
-                vnic_curr_overview_text = vnic_curr_overview_button.text.strip()
-                vnic_curr_overview_list = vnic_curr_overview_text.split('|')
-                
-                # 
-                # 网卡侧
-                # 
+                vnic_overview_button = self.vmconf_details_selector.ele_selection('vnic_overview', ele_replace=vnic_name)
+                vnic_curr_overview_list = vnic_overview_button.text.strip().split('|')
                 if vnic_curr_overview_list[1].strip() not in vnic_conf['uplink_switch_name']:
                     self.logger.error(OtherTools.mk_match_valid_string('上行交换机', vnic_curr_overview_list[1], vnic_conf['uplink_switch_name']))
                     return 0
-                vnic_curr_overview_button.click()
-                sleep(0.5)
+                vnic_overview_button.click()
+
                 # 获取当前网卡除子IP外的全部配置项
-                nic_detail_dict = self.get_vnic_all_conf(vnic_order, self.vmconf_details_selector)
+                nic_detail_dict = self.get_vnic_all_conf(vnic_name, self.vmconf_details_selector)
                 self.logger.debug(nic_detail_dict)
                 # self.vmconf_details_selector.click('step_back')
                                 
@@ -171,7 +170,7 @@ class VNicCheck:
                 
                 vnic_conf_fire_wall_name = '无' if vnic_conf['firewall_name'] == '' else OtherTools.replace_str_extraction(vnic_conf['firewall_name'])
                 assert_flag = self.otools.match_vaildtion('防火墙', vnic_conf_fire_wall_name, 
-                                                          OtherTools.replace_str_extraction(nic_detail_dict['防火墙']))
+                                                            OtherTools.replace_str_extraction(nic_detail_dict['防火墙']))
                 if not assert_flag:
                     return assert_flag
 
@@ -180,7 +179,7 @@ class VNicCheck:
                     return 0
                 
                 if not self.otools.match_vaildtion('上行交换机', OtherTools.replace_str_extraction(vnic_conf['uplink_switch_name']),
-                                                   nic_detail_dict['交换机']):
+                                                    nic_detail_dict['交换机']):
                     return 0
 
                 vnic_is_use_ipcheck = '已开启' if vnic_conf['is_ipcheck'] else '未开启'
@@ -194,16 +193,19 @@ class VNicCheck:
                 vnic_out_bandwidth = '不启用' if vnic_conf['out_bandwidth'] == '' else vnic_conf['out_bandwidth'].split(' ')[0]
                 if not self.otools.match_vaildtion('出站带宽限制', vnic_out_bandwidth, nic_detail_dict['出站带宽限制']):
                     return 0
-                
+
                 # IP校验整体校验，校验全部网卡是否与指定IP一致
-                assert_flag, vm_list_ips = self.vm_list_ip_check(vm_list_ips, vnic_conf)
+                assert_flag, vm_list_ips = self.vm_list_ip_check(vm_list_ips, vnic_conf)  
                 if assert_flag == 0:
                     return assert_flag
                 
+                self.page_head_index('compute_button').click()
+                vm_name_button.click()
+
             if vm_list_ips != []:
                 self.logger.error(f'IP校验失败，虚拟机实际绑定IP多于配置IP，不在配置指定范围内的实际绑定IP：{vm_list_ips}')
                 return 0
-
+              
         return 1   
 
 class AssertCheck:

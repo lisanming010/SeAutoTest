@@ -1,6 +1,7 @@
 import paramiko
 import re, os, hashlib, sys
 from pathlib import Path
+from functools import wraps
 
 class sshToEnv:
     '''
@@ -23,6 +24,7 @@ class sshToEnv:
         '''
         ssh连接回收装饰器
         '''
+        @wraps(func)
         def wrapper(*args, **kwarges):
             try:
                 return func(*args, **kwarges)

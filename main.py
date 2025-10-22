@@ -1,7 +1,5 @@
 import pytest
-from selenium import webdriver
 from utils.confing_handle import HandleConfig
-from requests.packages import urllib3
 
 SETTIGN_FILE = 'setting.ini'
 

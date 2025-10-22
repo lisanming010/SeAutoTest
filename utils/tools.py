@@ -125,11 +125,11 @@ class NetTools:
             except_ip_list = ip_except_dict[ip_type.lower()]
             actual_diff_ips = list(set(actual_ips) - set(except_ip_list))
             except_diff_ips = list(set(except_ip_list) - set(actual_ips))
-            if actual_diff_ips != []:
+            if except_diff_ips != []:
                 assert_flag = 0
-                self.logger.error(f'IP校验失败，实际捕获IP多于指定IP，实际多余IP:{actual_diff_ips}')
+                self.logger.error(f'IP校验失败，有期望的IP未绑定上:{except_diff_ips}')
 
-        return assert_flag, except_diff_ips
+        return assert_flag, actual_diff_ips
     
 class OtherTools:
     def __init__(self, logger):
