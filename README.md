@@ -9,6 +9,7 @@
 ├── Pipfile.lock
 ├── README.md
 ├── conftest.py		全局pytest conftest
+├── config.py       配置文件读取单例入口
 ├── logs			日志存放位置
 ├── main.py			程序入口
 ├── pages_selector	元素定位封装

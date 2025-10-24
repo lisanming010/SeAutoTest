@@ -110,6 +110,14 @@ class VNicCheck:
         return nic_detail_dict
 
     def vm_list_ip_check(self, actual_ip_dict:dict, vnic_conf:dict):
+        """
+        IP校验
+
+        :actual_ip_dict: 实际捕获IP字典，{'IPv4':[], 'IPv6':[]}
+        :vnic_conf: 待校验的网卡配置信息
+
+        -> assert_flag, actual_diff_ip_dict
+        """
         assert_flag = 1
         nettool = NetTools(self.driver, self.logger)
 
@@ -118,9 +126,9 @@ class VNicCheck:
         self.logger.debug(dvswith_info_dict)
         ip_except_dict = NetTools.get_except_ips(vnic_conf)
         self.logger.debug(f'本轮校验实际捕获到的全部IP：{actual_ip_dict},\n当前网卡预期IP：{ip_except_dict}')
-        # 连接到启用DHCP的交换机，仅校验是否获取IP
+        # 连接到启用DHCP的交换机，校验捕获IP是否在IP分配列表中
         if dvswith_info_dict['dvswitch_IPv4_seg'] != '-':
-            #连接到启用了DHCP的交换机
+            # 连接到启用了DHCP的交换机
             pass
         elif dvswith_info_dict['dvswitch_IPv4_seg'] == '-':
             # IP地址比对
