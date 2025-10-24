@@ -75,30 +75,38 @@ class VNicCheck:
                     ip_dict[key].append(i)
             return ip_dict
 
-    def get_vnic_all_conf(self, vnic_name, vmconf_details_selector)-> dict:
+    def get_vnic_all_conf(self, vnic_nums:int, vmconf_details_selector)-> dict:
         '''
         方法调用前需要先进入对应虚拟机详情页面
 
         :vnic_name: 网卡序号
         :vmconf_details_selector: EleAction(...,'vm_hw_conf_details',...)实例
 
-        ->{'MAC地址': 'd0:0d:44:3b:c7:89', '防火墙': '<无>', '网卡状态': '已上线', 
+        ->{'d0:0d:44:3b:c7:89':{'防火墙': '<无>', '网卡状态': '已上线', 
           'IPv4地址': '192.168.2.100', 'IPv4子IP地址': '<空>', '掩码': '255.255.255.0', '网关': '192.168.2.254', 
-          '交换机': 'NAT交换机', '交换机微隔离': '未开启', 'IP地址检查': '已开启', '入站带宽限制': '20 Mbps', '出站带宽限制': '25 Mbps'}
+          '交换机': 'NAT交换机', '交换机微隔离': '未开启', 'IP地址检查': '已开启', '入站带宽限制': '20 Mbps', '出站带宽限制': '25 Mbps'},}
         '''
-        vnic_detail = vmconf_details_selector.ele_selection('vnic_detail', ele_replace=vnic_name, find_list=True)
+
+        vnic_overview_buttons = self.vmconf_details_selector.ele_selection('vnic_overview', ele_replace='网卡', find_list=True)
+        for i in vnic_overview_buttons:
+            ActionChains(self.driver).move_to_element(i).click(i).perform()
+            self.logger.debug(f'vnic_overview click')
+        # sleep(600)
+        
         nic_detail_dict = {}
-
-        # debug code
-        vnic_detail_tmp = [i.text for i in vnic_detail]
-        self.logger.debug(f'vnic_detail:{vnic_detail_tmp}')
-        # 
-
-        for i in vnic_detail:
-            key, value = i.text.split('\n')
-            if '管理子IP' in value:
-                value, _ = value.split(' ')
-            nic_detail_dict[key] = value
+        nic_detail_dict_tmp = {}
+        for i in range(vnic_nums):
+            vnic_name = f'网卡{i + 1}'
+            vnic_detail = vmconf_details_selector.ele_selection('vnic_detail', ele_replace=vnic_name, find_list=True)
+            mac_addr = ''
+            for i in vnic_detail:
+                key, value = i.text.split('\n')
+                if '管理子IP' in value:
+                    value, _ = value.split(' ')
+                if 'MAC地址' in key:
+                    mac_addr = value
+                nic_detail_dict_tmp[key] = value
+            nic_detail_dict[mac_addr] = nic_detail_dict_tmp
         return nic_detail_dict
 
     def vm_list_ip_check(self, actual_ip_dict:dict, vnic_conf:dict):
@@ -109,26 +117,30 @@ class VNicCheck:
         dvswith_info_dict = nettool.dvswitch_row_text(uplink_switch_name)
         self.logger.debug(dvswith_info_dict)
         ip_except_dict = NetTools.get_except_ips(vnic_conf)
+        self.logger.debug(f'本轮校验实际捕获到的全部IP：{actual_ip_dict},\n当前网卡预期IP：{ip_except_dict}')
         # 连接到启用DHCP的交换机，仅校验是否获取IP
         if dvswith_info_dict['dvswitch_IPv4_seg'] != '-':
             #连接到启用了DHCP的交换机
             pass
         elif dvswith_info_dict['dvswitch_IPv4_seg'] == '-':
             # IP地址比对
-            assert_flag, actual_diff_ip = nettool.ip_match(actual_ip_dict, ip_except_dict)
-        return assert_flag, actual_diff_ip
+            assert_flag, actual_diff_ip_dict = nettool.ip_match(actual_ip_dict, ip_except_dict)
+        return assert_flag, actual_diff_ip_dict
 
-    def vnic_conf_check(self, vm_id, vm_name_button, vm_conf)-> bool:
+    def vnic_conf_check(self, vm_id, vm_name, vm_conf)-> bool:
         '''
         虚拟机网卡配置校验
 
         :vm_id :虚拟机ID
-        :vm_name_button :虚拟机名称selector
+        :vm_name :虚拟机名称
         :vm_conf :虚拟机配置dict
         '''
-        vm_list_ips = self.vm_list_get_allIp(vm_id)
+        vm_ip_dict = self.vm_list_get_allIp(vm_id)
         curr_vnic_num = 0
+
+        vm_name_button = self.vm_list_selector.ele_selection('vm_name_button', vm_name)
         vm_name_button.click()
+
         sleep(2)
         vnic_num = vm_conf['vm_nic_num']
         try:
@@ -145,65 +157,62 @@ class VNicCheck:
         elif curr_vnic_num == vnic_num == 0:
             self.logger.debug('虚拟机网卡相关配置校验通过！虚拟机未绑定网卡')
         elif curr_vnic_num == vnic_num:
+            # 获取当前网卡除子IP外的全部配置项
+            nic_detail_dict = self.get_vnic_all_conf(vnic_num, self.vmconf_details_selector)
+            self.logger.debug(nic_detail_dict)
+
             for i in range(vnic_num):
-                vnic_order = f'{i+1}'
-                vnic_name = f'vm_nic{vnic_order}'
-                vnic_conf = vm_conf[vnic_name]
+                vnic_name_conf = f'vm_nic{i+1}'
+                vnic_conf = vm_conf[vnic_name_conf]
 
-                vnic_overview_button = self.vmconf_details_selector.ele_selection('vnic_overview', ele_replace=vnic_name)
-                vnic_curr_overview_list = vnic_overview_button.text.strip().split('|')
-                if vnic_curr_overview_list[1].strip() not in vnic_conf['uplink_switch_name']:
-                    self.logger.error(OtherTools.mk_match_valid_string('上行交换机', vnic_curr_overview_list[1], vnic_conf['uplink_switch_name']))
+                mac_conf = vnic_conf['mac_addr']
+                vnic_actual_setting = nic_detail_dict.get(mac_conf, None)
+                if vnic_actual_setting == None:
+                    self.logger.error(f'mac校验失败，虚拟机网卡无期望mac配置，期望mac：{mac_conf}')
                     return 0
-                vnic_overview_button.click()
-
-                # 获取当前网卡除子IP外的全部配置项
-                nic_detail_dict = self.get_vnic_all_conf(vnic_name, self.vmconf_details_selector)
-                self.logger.debug(nic_detail_dict)
-                # self.vmconf_details_selector.click('step_back')
-                                
-                if vnic_conf['mac_addr'] != '' and vnic_conf['mac_addr'] != nic_detail_dict['MAC地址']:
-                    self.logger.error(
-                        OtherTools.mk_match_valid_string('mac地址', nic_detail_dict['MAC地址'], vnic_conf['mac_addr'])
-                    )
+                
+                conf_uplink_name = OtherTools.replace_str_extraction(vnic_conf['uplink_switch_name'])
+                if not self.otools.match_vaildtion('上行交换机', conf_uplink_name, vnic_actual_setting.get('交换机', None)):
                     return 0
                 
                 vnic_conf_fire_wall_name = '无' if vnic_conf['firewall_name'] == '' else OtherTools.replace_str_extraction(vnic_conf['firewall_name'])
                 assert_flag = self.otools.match_vaildtion('防火墙', vnic_conf_fire_wall_name, 
-                                                            OtherTools.replace_str_extraction(nic_detail_dict['防火墙']))
+                                                            OtherTools.replace_str_extraction(vnic_actual_setting['防火墙']))
                 if not assert_flag:
                     return assert_flag
 
                 vnic_is_online = '已上线' if vnic_conf['is_online'] else '已下线'
-                if not self.otools.match_vaildtion('网卡状态', vnic_is_online, nic_detail_dict['网卡状态']):
+                if not self.otools.match_vaildtion('网卡状态', vnic_is_online, vnic_actual_setting['网卡状态']):
                     return 0
                 
                 if not self.otools.match_vaildtion('上行交换机', OtherTools.replace_str_extraction(vnic_conf['uplink_switch_name']),
-                                                    nic_detail_dict['交换机']):
+                                                    vnic_actual_setting['交换机']):
                     return 0
 
                 vnic_is_use_ipcheck = '已开启' if vnic_conf['is_ipcheck'] else '未开启'
-                if not self.otools.match_vaildtion('是否启用IP地址检查', vnic_is_use_ipcheck, nic_detail_dict['IP地址检查']):
+                if not self.otools.match_vaildtion('是否启用IP地址检查', vnic_is_use_ipcheck, vnic_actual_setting['IP地址检查']):
                     return 0
                 
                 vnic_in_bandwidth = '不启用' if vnic_conf['in_bandwidth'] == '' else vnic_conf['in_bandwidth'].split(' ')[0]
-                if not self.otools.match_vaildtion('入站带宽限制', vnic_in_bandwidth, nic_detail_dict['入站带宽限制']):
+                if not self.otools.match_vaildtion('入站带宽限制', vnic_in_bandwidth, vnic_actual_setting['入站带宽限制']):
                     return 0
                 
                 vnic_out_bandwidth = '不启用' if vnic_conf['out_bandwidth'] == '' else vnic_conf['out_bandwidth'].split(' ')[0]
-                if not self.otools.match_vaildtion('出站带宽限制', vnic_out_bandwidth, nic_detail_dict['出站带宽限制']):
+                if not self.otools.match_vaildtion('出站带宽限制', vnic_out_bandwidth, vnic_actual_setting['出站带宽限制']):
                     return 0
-
+                
                 # IP校验整体校验，校验全部网卡是否与指定IP一致
-                assert_flag, vm_list_ips = self.vm_list_ip_check(vm_list_ips, vnic_conf)  
+                assert_flag, vm_ip_dict = self.vm_list_ip_check(vm_ip_dict, vnic_conf)  
                 if assert_flag == 0:
                     return assert_flag
                 
-                self.page_head_index('compute_button').click()
-                vm_name_button.click()
+                # self.page_head_index.click('compute_button')
+                # # sleep(1)
+                # vm_name_button = self.vm_list_selector.ele_selection('vm_name_button', vm_name)
+                # vm_name_button.click()
 
-            if vm_list_ips != []:
-                self.logger.error(f'IP校验失败，虚拟机实际绑定IP多于配置IP，不在配置指定范围内的实际绑定IP：{vm_list_ips}')
+            if vm_ip_dict['IPv4'] != [] and vm_ip_dict['IPv6'] != []:
+                self.logger.error(f'IP校验失败，虚拟机实际绑定IP多于配置IP，不在配置指定范围内的实际绑定IP：{vm_ip_dict}')
                 return 0
               
         return 1   
@@ -239,7 +248,12 @@ class AssertCheck:
         loop_time = 100
         while True:
             sleep(3)
-            vm_curr_state = self.vm_list_selector.ele_selection('vm_stat', vm_id).text.strip()
+            try:
+                vm_curr_state = self.vm_list_selector.ele_selection('vm_stat', vm_id).text.strip()
+            except seEception.NoSuchElementException as e:
+                assert_flag = 0
+                self.logger.error(f'虚拟机创建失败！！！')
+                break
             if desired_state in vm_curr_state:
                 break
             elif loop_time == 0:
@@ -269,12 +283,13 @@ class AssertCheck:
             else:
                 vm_name = f'{vm_name_pre}-{i + 1}'
             try:
-                vm_name_button = self.vm_list_selector.ele_selection('vm_name_button', vm_name, ele_kind='list')
+                self.vm_list_selector.ele_selection('vm_name_button', vm_name, ele_kind='list')
             except seEception.NoSuchElementException:
                 # 查找不到虚拟机记录，判断为创建失败。
                 # TODO：添加日志采集输出错误详情，看是用se还是走接口
                 assert_flag = 0
                 self.logger.error(f'虚拟机{vm_name}创建失败或找不到虚拟机记录')
+                OtherTools.screen_shot(self.driver, '虚拟机创建失败')
                 return assert_flag
             else:
                 '''运行状态判断'''
@@ -290,7 +305,7 @@ class AssertCheck:
                 
                 '''虚拟机网卡相关配置校验'''
                 vnic_check = VNicCheck(self.driver, self.logger, self.vm_conf)
-                assert_flag = vnic_check.vnic_conf_check(vm_id, vm_name_button, self.vm_conf)
+                assert_flag = vnic_check.vnic_conf_check(vm_id, vm_name, self.vm_conf)
                 if not assert_flag:
                     return assert_flag
             

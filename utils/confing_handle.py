@@ -5,9 +5,9 @@ import os
 class HandleConfig:
     def __init__(self, filename):
         self.filename = filename
-        self.conf = configparser.RawConfigParser()
+        self.conf = configparser.RawConfigParser(allow_no_value=True)
         if os.path.exists(filename):
-            self.conf.read(self.filename, encoding='UTF-8')
+            self.conf.read(self.filename, encoding='utf-8')
 
     def has_section(self, section):
         return self.conf.has_section(section)
@@ -42,7 +42,7 @@ class HandleConfig:
         for option, value in options:
             self.conf.set(section, option, value)
 
-        with open(self.filename, 'w') as f:
+        with open(self.filename, 'w', encoding='utf-8') as f:
             self.conf.write(f)
 
     def update_conf(self, section, options):
@@ -58,5 +58,5 @@ class HandleConfig:
                 self.conf.remove_option(section, option)
             self.conf.set(section, option, value)
 
-        with open(self.filename, 'w') as f:
+        with open(self.filename, 'w', encoding='utf-8') as f:
             self.conf.write(f)

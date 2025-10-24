@@ -1,7 +1,7 @@
 from utils.ele_action import EleAction
 from pages_selector.find_element import FindEles
-import ipaddress
-import re
+from config import cfg_global
+import ipaddress, re, os, time
 
 class NetTools:
     def __init__(self, driver, logger):
@@ -119,6 +119,7 @@ class NetTools:
         ->[assert_flag, except_ip_list]
         '''
         assert_flag = 1
+        actual_diff_ip_dict = {}
         for ip_type, actual_ips in actual_ip_dict.items():
             if assert_flag == 0:
                 break
@@ -128,8 +129,9 @@ class NetTools:
             if except_diff_ips != []:
                 assert_flag = 0
                 self.logger.error(f'IP校验失败，有期望的IP未绑定上:{except_diff_ips}')
+            actual_diff_ip_dict[ip_type] = actual_diff_ips            
 
-        return assert_flag, actual_diff_ips
+        return assert_flag, actual_diff_ip_dict
     
 class OtherTools:
     def __init__(self, logger):
@@ -179,3 +181,10 @@ class OtherTools:
         )
 
         return assert_flag
+    
+    @staticmethod
+    def screen_shot(driver, screenshot_name):
+        screenshot_path = cfg_global.get_value_str('global', 'screenshot_save_path')
+        screenshot_path = os.path.join(screenshot_path, f'{screenshot_name}_{int(time.time())}.png')
+        driver.save_screenshot(screenshot_path)
+        return screenshot_path

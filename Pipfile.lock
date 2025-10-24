@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "85e89338adcd8d3a2c40af96b8359656a78bf00a3b76f46f790d812c2b4c99ef"
+            "sha256": "6cafe0a4c20a56470bb1e60e7a678062f9da47363e43d3b189bc21d48fb8813b"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -428,6 +428,15 @@
             ],
             "markers": "python_full_version >= '3.9' and platform_python_implementation != 'PyPy'",
             "version": "==2.0.0"
+        },
+        "chardet": {
+            "hashes": [
+                "sha256:1b3b6ff479a8c414bc3fa2c0852995695c4a026dcd6d0633b2dd092ca39c1cf7",
+                "sha256:e1cf59446890a00105fe7b7912492ea04b6e6f06d4b742b2c788469e34c82970"
+            ],
+            "index": "pip_conf_index_global",
+            "markers": "python_version >= '3.7'",
+            "version": "==5.2.0"
         },
         "charset-normalizer": {
             "hashes": [
