@@ -6,21 +6,12 @@ from time import sleep
 from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from utils.log_handle.log_handle import LoggerSetUp
-from utils.confing_handle import HandleConfig
+from config import cfg_global
 from pages_selector.find_element import FindEles
-from test_cases.vm_test.conftest import create_vm
+from utils.tools import OtherTools
 
 _driver = ''
-_conf_handler = HandleConfig('setting.ini')
-
-SCREENSHOT_SAVE_PATH = './screenshots/'
-if not os.path.exists(SCREENSHOT_SAVE_PATH):
-    os.makedirs(SCREENSHOT_SAVE_PATH)
-
-def screen_shot(driver, screenshot_name):
-    screenshot_path = os.path.join(SCREENSHOT_SAVE_PATH, f'{screenshot_name}_{int(time.time())}.png')
-    driver.save_screenshot(screenshot_path)
-    return screenshot_path
+_conf_handler = cfg_global
 
 def init_logger():
     logger = LoggerSetUp('test_log_pytest')
@@ -101,6 +92,6 @@ def pytest_runtest_makereport(item):
     if rep.when == 'call' and rep.failed:
         test_name = item.name
         if _driver:
-            screenshoot_path = screen_shot(_driver, test_name)
+            screenshoot_path = OtherTools.screen_shot(_driver, test_name)
             allure.attach.file(screenshoot_path, name='ScreenShot', 
                                attachment_type=allure.attachment_type.PNG)

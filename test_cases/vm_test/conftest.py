@@ -2,7 +2,7 @@ import pytest
 from pages_selector.find_element import FindEles
 from utils.ele_action import EleAction
 from time import sleep
-from typing import TYPE_CHECKING
+import selenium.common.exceptions as seEception
 
 # IP类型相关替换字段构造体
 _vmnic_conf_struct = {
@@ -69,7 +69,11 @@ def _ip_settig(vnic_conf: dict, ele_action: EleAction, vnic_order: int, logger):
                     ele_action.input_send('vmnic_subip_nums_input', vnic_conf[f'{ip_type}_subip_random_nums'], replace_list)
                 if vnic_conf[f'{ip_type}_subip_set_mode'] == '指定':
                     replace_list = [subip_type, vnic_order]
-                    ele_action.click('vmnic_subip_appoint_radio', replace_list)
+                    try:
+                        ele_action.click('vmnic_subip_appoint_radio', replace_list)
+                    except seEception.NoSuchElementException:
+                        # 连接到不启用DHCP的交换机时选择启用子IP时无IP方式设置
+                        pass
                     ele_action.input_send('vmnic_subip_appoint_input', vnic_conf[f'{ip_type}_subip_appoint_addr'], replace_list)
         elif vnic_conf[f'is_use_{ip_type}'] == False and 'ivu-switch-checked' in is_use_switch.get_attribute('class'):
             is_use_switch.click()
@@ -198,7 +202,7 @@ def create_vm(request, login_driver):
     vnic_nums = vm_create_conf['vm_nic_num']
     if vnic_nums > 0:
         if vnic_nums > 1:
-            for i in range(vnic_nums):
+            for i in range(vnic_nums - 1):
                 ele_action.click('add_hw_button')
                 ele_action.click('add_hw_vmnic_button')
         for i in range(vnic_nums):
@@ -212,7 +216,7 @@ def create_vm(request, login_driver):
                 if vnic_conf['uplink_switch_name'] != '':
                     ele_action.dropdown_menu_select('vmnic_conf_uplink_selector', 'vmnic_conf_uplink_select_name',
                                                     selector_replace=vnic_order,
-                                                    target_option_repalce=vnic_conf['uplink_switch_name'])
+                                                    target_option_repalce=[vnic_conf['uplink_switch_name'], vnic_order])
                     # ele_action.click('vmnic_conf_uplink_selector_after_click', vnic_order)
                 
                 #mac地址配置
@@ -234,8 +238,14 @@ def create_vm(request, login_driver):
                     ele_action.click('vmnic_conf_offline_radio', vnic_order)
                 
                 #ip地址检查配置
+                ele_ipcheck_checkbox = ele_action.ele_selection('vmnic_conf_ipcheck_checkbox', vnic_order)
+                is_checked = ele_ipcheck_checkbox.get_attribute('class')
                 if vnic_conf['is_ipcheck'] == False:
-                    ele_action.click('vmnic_conf_ipcheck_checkbox', vnic_order)
+                    if 'ivu-checkbox-wrapper-checked' in is_checked:
+                        ele_ipcheck_checkbox.click()
+                elif vnic_conf['is_ipcheck'] == True:
+                    if 'ivu-checkbox-wrapper-checked' not in is_checked:
+                        ele_ipcheck_checkbox.click()
 
                 #出入站带宽限制
                 if vnic_conf['in_bandwidth'] != '':
@@ -262,7 +272,7 @@ def create_vm(request, login_driver):
             iso_conf = vm_create_conf[f'iso{iso_order}']
             ele_action.click('optical_driver_button', iso_oder_name)
             if iso_conf != '':
-                if iso_conf['is_external_iso'] is False:
+                if iso_conf['is_external_iso'] == False:
                     replace_list = [iso_conf['associated_storage_pool'], iso_conf['iso_name_or_link']]
                     ele_action.dropdown_menu_select('optical_driver_selector', 'optical_driver_select_name',
                                                     iso_order, replace_list, ele_kind='popup')

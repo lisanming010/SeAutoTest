@@ -4,7 +4,7 @@ from selenium.webdriver.common.keys import Keys
 from time import sleep
 from typing import TYPE_CHECKING
 
-class EleAction():
+class EleAction:
     def __init__(self, driver, ele_find, page_name: str, logger):
         '''
         selenium部分动作包装类
@@ -40,7 +40,7 @@ class EleAction():
 
 
         #分页控件便利页面查询
-        self.driver.implicitly_wait(0)
+        self.driver.implicitly_wait(1)
         while True:
             try:
                 if ele_replace == '':
@@ -63,6 +63,7 @@ class EleAction():
                         self.driver.implicitly_wait(10)
                         raise not_fond_ele_target_option
                     else:
+                        self.driver.implicitly_wait(3)
                         page_down_button.click()
                         sleep(0.5)
             else:
@@ -87,7 +88,7 @@ class EleAction():
 
 
     def dropdown_menu_select(self, selector, target_option, selector_replace='', target_option_repalce='',
-                              ele_kind='selector'):
+                              ele_kind='selector', sleep_time=1):
         """
         下拉列表选择
 
@@ -100,7 +101,7 @@ class EleAction():
         elif selector_replace == '':
             selector_button = self.ele_selection(selector)
         selector_button.click()
-        sleep(1)
+        sleep(sleep_time)
 
         if target_option_repalce != '':
             self.click(target_option, target_option_repalce, ele_kind=ele_kind)

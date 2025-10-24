@@ -1,9 +1,11 @@
 import configparser
+from functools import wraps
 
 def ele_selector_exception_handing(func):
     '''
     监测元素选择情况，并输出日志
     '''
+    @wraps(func)
     def wrapper(*args, **kwargs):
         logger = args[0].logger #获取元素选择方法类的self.looger日志记录器
         try:
