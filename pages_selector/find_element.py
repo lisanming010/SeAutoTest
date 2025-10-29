@@ -65,4 +65,24 @@ class FindEles:
             return ele, ele_name
         else:
             raise NameError(f'未定义的定位方式{ele_find_by}')
+        
+    @exception_handling.ele_selector_exception_handing
+    def find_ele_base_ele(self, ele, by, follow_path, find_list=False):
+        '''
+        webelement对象方法封装，支持从当前ele对象路径下再次检索
 
+        :ele: 起始元素
+        :by: 定位方式，目前仅支持xpath
+        :follow_path: 定位路径
+        :find_list: 是否定位多个元素，即是否调用find_elements
+        ——> ele
+        '''
+        if by == 'xpath':
+            if find_list:
+                ele = ele.find_elements(By.XPATH, follow_path)
+            else:
+                ele = ele.find_element(By.XPATH, follow_path)
+        else:
+            raise RuntimeError(f'未定义的定位方式{by}')
+        return ele, str(ele)
+        

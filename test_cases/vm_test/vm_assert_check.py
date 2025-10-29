@@ -126,13 +126,21 @@ class VNicCheck:
         self.logger.debug(dvswith_info_dict)
         ip_except_dict = NetTools.get_except_ips(vnic_conf)
         self.logger.debug(f'本轮校验实际捕获到的全部IP：{actual_ip_dict},\n当前网卡预期IP：{ip_except_dict}')
+        # 仅校验IP
+        assert_flag, actual_diff_ip_dict = nettool.ip_match(actual_ip_dict, ip_except_dict)
+
         # 连接到启用DHCP的交换机，校验捕获IP是否在IP分配列表中
         if dvswith_info_dict['dvswitch_IPv4_seg'] != '-':
             # 连接到启用了DHCP的交换机
             pass
         elif dvswith_info_dict['dvswitch_IPv4_seg'] == '-':
             # IP地址比对
-            assert_flag, actual_diff_ip_dict = nettool.ip_match(actual_ip_dict, ip_except_dict)
+            pass
+        if dvswith_info_dict['dvswitch_IPv6_seg'] == '-':
+            pass
+        elif dvswith_info_dict['dvswitch_IPv6_seg'] == '-':
+            pass
+
         return assert_flag, actual_diff_ip_dict
 
     def vnic_conf_check(self, vm_id, vm_name, vm_conf)-> bool:

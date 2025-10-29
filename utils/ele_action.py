@@ -15,8 +15,12 @@ class EleAction:
         '''
         self.driver = driver
         self._ele_find = ele_find.find_ele
+        self._ele_find_base_ele = ele_find.find_ele_base_ele
         self.page_name = page_name
         self.logger = logger
+
+    def ele_selection_base_ele(self, ele, by, follow_path, find_list=False):
+        return self._ele_find_base_ele(ele, by, follow_path, find_list)
 
     def ele_selection(self, ele_name: str, ele_replace='', page_local='', ele_kind = '', find_list=False):
         """
