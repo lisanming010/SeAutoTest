@@ -23,7 +23,9 @@ class NetTools:
         :dvswitch_name: 分布式交换机名称
         ->dict {mac:[vnicID, ipv4, ipv6, vmName, updateTime]}
         '''
-        self.dvswitch_ele_action.click('dvswitch_name', dvswitch_name)
+        dvswitch_name_ele = self.dvswitch_ele_action.ele_selection('dvswitch_name', dvswitch_name, pgdown_selction='dvswitch_list_pgdown', ele_kind='list')
+        dvswitch_name_ele.click()
+
         allocated_ip_rows = {}
         pgdown_button = self.dvswitch_ele_action.ele_selection('allocated_ip_list_pgdown', self.driver)
         while True:
@@ -60,9 +62,10 @@ class NetTools:
         self.menu_ele_action.click('network_button')
         self.second_menu_action.click('button', '分布式交换机')
 
-        dvswitch_row_ele = self.dvswitch_ele_action.ele_selection('dvswitch_id', dvswitch_name, find_list=True)
-
+        dvswitch_row_ele = self.dvswitch_ele_action.ele_selection('dvswitch_id', dvswitch_name, ele_kind='list', pgdown_selction='dvswitch_list_pgdown', find_list=True)
+        self.logger.debug(f'dvswitch_row_ele:{dvswitch_row_ele}')
         dvswitch_row = [x.text if x.text!='' else '-' for x in dvswitch_row_ele]
+        self.logger.debug(f'dvswitch_row:{dvswitch_row}')
         dvswitch_row.pop(0)
         dvswitch_row.pop(-1)
 

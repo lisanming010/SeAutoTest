@@ -22,7 +22,7 @@ class EleAction:
     def ele_selection_base_ele(self, ele, by, follow_path, find_list=False):
         return self._ele_find_base_ele(ele, by, follow_path, find_list)
 
-    def ele_selection(self, ele_name: str, ele_replace='', page_local='', ele_kind = '', find_list=False):
+    def ele_selection(self, ele_name: str, ele_replace='', page_local='', ele_kind = '', pgdown_selction='', find_list=False):
         """
         元素选择器
 
@@ -35,6 +35,8 @@ class EleAction:
         page_name = self.page_name
         if page_local != '':
             page_name = page_local
+
+        pgdown_selction = 'list_pgdown' if pgdown_selction == '' else pgdown_selction
  
         if ele_kind == '':
             if ele_replace == '':
@@ -48,13 +50,13 @@ class EleAction:
         while True:
             try:
                 if ele_replace == '':
-                    ele = self._ele_find(page_name, ele_name)
+                    ele = self._ele_find(page_name, ele_name, find_list=find_list)
                 else:
-                    ele = self._ele_find(page_name, ele_name, replace_target=ele_replace)
+                    ele = self._ele_find(page_name, ele_name, replace_target=ele_replace, find_list=find_list)
             except seEception.NoSuchElementException as not_fond_ele_target_option: #未找到元素时进入翻页遍历逻辑
                 try:
                     if ele_kind == 'list':
-                        page_down_button = self._ele_find(page_name, 'list_pgdown') #判断是否有分页控件
+                        page_down_button = self._ele_find(page_name, pgdown_selction) #判断是否有分页控件
                     elif ele_kind == 'selector':
                         page_down_button = self._ele_find('general_common', 'select_dropdown_pagination_pgdown')
                     elif ele_kind == 'popup':
