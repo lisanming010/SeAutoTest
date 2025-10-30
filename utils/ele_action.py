@@ -20,6 +20,15 @@ class EleAction:
         self.logger = logger
 
     def ele_selection_base_ele(self, ele, by, follow_path, find_list=False):
+        '''
+        追加定位，支持基于已有元素扩展定位，对ele.find_element()封装
+
+        :ele: webelement对象
+        :by: 定位方式，目前仅支持xpath
+        :follow_path: 相对ele对象的路径
+        :find_list: 是否调用find_elements,默认为false
+        ->webelement(s)
+        '''
         return self._ele_find_base_ele(ele, by, follow_path, find_list)
 
     def ele_selection(self, ele_name: str, ele_replace='', page_local='', ele_kind = '', pgdown_selction='', find_list=False):
@@ -132,3 +141,36 @@ class EleAction:
         action.send_keys(input_content)
         action.perform()
         self.logger.info(f'click: {input} and send key: {input_content}')
+
+    def get_list_td_text(self, tbody_path:str, table_pgdown:str, tbody_path_replace='', drop_empty=True)->list:
+        '''
+        获取列表中全部td的text值，返回列表，调用时需要tbody可定位
+
+        :tbody: 列表tbody定位路径，当前仅支持xpath
+        :table_pgdown: 列表“下一页”按钮定位路径
+        :tbody_path_replace: 
+        :drop_empty: 是否丢弃空白记录
+        ->[tr[td,td],]
+        '''
+
+        tbody_ele = self.ele_selection(tbody_path, tbody_path_replace)
+        pgdown_ele = self.ele_selection(table_pgdown)
+        td_list = []
+        while True:
+            sleep(0.5)
+            tr_eles = self.ele_selection_base_ele(tbody_ele, 'xpath', './/tr', find_list=True)
+            for tr_ele in tr_eles:
+                td_eles = self.ele_selection_base_ele(tr_ele, 'xpath', './/td', find_list=True)
+                td_tmp = []
+                for td_ele in td_eles:
+                    if td_ele.text == '' and drop_empty:
+                        continue
+                    td_tmp.append(td_ele.text)
+                td_list.append(td_tmp)
+            
+            if 'ivu-page-disabled' in pgdown_ele.get_attribute('class'):
+                break
+            else:
+                pgdown_ele.click()
+        
+        return td_list

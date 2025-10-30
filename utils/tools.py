@@ -16,40 +16,43 @@ class NetTools:
         self.second_menu_action = EleAction(driver, self.find_ele, 'second_head_index', logger)
         self.dvswitch_ele_action = EleAction(driver, self.find_ele, 'dvswitch', logger)
 
+    def dvswitch_ip_pool(self, dvswitch_name:str)->list:
+        '''
+        分布式交换机IP池列表获取
+
+        :dvswitch_name: 分布式交换机名称
+        ->[tr[td,td],]
+        '''
+
+        dvswitch_name_ele = self.dvswitch_ele_action.ele_selection('dvswitch_name', dvswitch_name, pgdown_selction='dvswitch_list_pgdown', ele_kind='list')
+        dvswitch_name_ele.click()
+        self.dvswitch_ele_action.click('ip_list_button')
+
+        td_list = self.dvswitch_ele_action.get_list_td_text('ip_list_tbody', 'ip_list_pgdown')
+        self.dvswitch_ele_action.click('detail_pgbackup')
+        return td_list
+
+
     def dvswitch_allocated_ip(self, dvswitch_name:str)->dict:
         '''
         分布式交换机已分配IP列表信息采集方法
 
         :dvswitch_name: 分布式交换机名称
-        ->dict {mac:[vnicID, ipv4, ipv6, vmName, updateTime]}
+        ->dict {mac:[vnicID, nicMac, ipv4, ipv6, vmName, updateTime]}
         '''
         dvswitch_name_ele = self.dvswitch_ele_action.ele_selection('dvswitch_name', dvswitch_name, pgdown_selction='dvswitch_list_pgdown', ele_kind='list')
         dvswitch_name_ele.click()
 
         allocated_ip_rows = {}
-        pgdown_button = self.dvswitch_ele_action.ele_selection('allocated_ip_list_pgdown', self.driver)
-        while True:
-            sleep(0.5)
-            allocated_ip_row_eles = self.dvswitch_ele_action.ele_selection('allocated_ip_rows', self.driver, find_list=True)
-            for allocated_ip_row_ele in allocated_ip_row_eles:
-                # 从当前tr定位到下属所有td
-                allocated_ip_td_eles = self.dvswitch_ele_action.ele_selection_base_ele(allocated_ip_row_ele, 'xpath', './/td', find_list=True)
+        td_list = self.dvswitch_ele_action.get_list_td_text('allocated_ip_tbody', 'allocated_ip_list_pgdown')
+        for tr in td_list:
+            for td in tr:
+                if 'd0:0d' in td:
+                    allocated_ip_rows[td] = tr
+                    break
 
-                allocated_ip_list = []
-                for allocated_ip_td_ele in allocated_ip_td_eles:
-                    if 'd0:0d' in allocated_ip_td_ele.text:
-                        ip_dict_key = allocated_ip_td_ele.text
-                    else:
-                        allocated_ip_list.append(allocated_ip_td_ele.text)
-                allocated_ip_rows[ip_dict_key] = allocated_ip_list
-                    
-            if 'ivu-page-disabled' in pgdown_button.get_attribute('class'):
-                break
-            else:
-                pgdown_button.click()
         self.dvswitch_ele_action.click('detail_pgbackup')
         return allocated_ip_rows
-        
 
     def dvswitch_row_text(self, dvswitch_name, get_allocated_ip=False)-> dict:
         '''

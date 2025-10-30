@@ -91,7 +91,6 @@ class VNicCheck:
         for i in vnic_overview_buttons:
             ActionChains(self.driver).move_to_element(i).click(i).perform()
             self.logger.debug(f'vnic_overview click')
-        # sleep(600)
         
         nic_detail_dict = {}
         nic_detail_dict_tmp = {}
@@ -109,9 +108,15 @@ class VNicCheck:
             nic_detail_dict[mac_addr] = nic_detail_dict_tmp
         return nic_detail_dict
 
+    def ip_check_sw_side(slef, dvswitch_name):
+        '''
+        虚拟机IP和交换机侧校验，主要校验分配数量统计、ip分配记录
+        '''
+        pass
+
     def vm_list_ip_check(self, actual_ip_dict:dict, vnic_conf:dict):
         """
-        IP校验
+        虚拟机IP和配置文件间校验
 
         :actual_ip_dict: 实际捕获IP字典，{'IPv4':[], 'IPv6':[]}
         :vnic_conf: 待校验的网卡配置信息
@@ -121,26 +126,10 @@ class VNicCheck:
         assert_flag = 1
         nettool = NetTools(self.driver, self.logger)
 
-        uplink_switch_name = vnic_conf['uplink_switch_name']
-        dvswith_info_dict = nettool.dvswitch_row_text(uplink_switch_name)
-        self.logger.debug(dvswith_info_dict)
         ip_except_dict = NetTools.get_except_ips(vnic_conf)
         self.logger.debug(f'本轮校验实际捕获到的全部IP：{actual_ip_dict},\n当前网卡预期IP：{ip_except_dict}')
         # 仅校验IP
         assert_flag, actual_diff_ip_dict = nettool.ip_match(actual_ip_dict, ip_except_dict)
-
-        # 连接到启用DHCP的交换机，校验捕获IP是否在IP分配列表中
-        if dvswith_info_dict['dvswitch_IPv4_seg'] != '-':
-            # 连接到启用了DHCP的交换机
-            pass
-        elif dvswith_info_dict['dvswitch_IPv4_seg'] == '-':
-            # IP地址比对
-            pass
-        if dvswith_info_dict['dvswitch_IPv6_seg'] == '-':
-            pass
-        elif dvswith_info_dict['dvswitch_IPv6_seg'] == '-':
-            pass
-
         return assert_flag, actual_diff_ip_dict
 
     def vnic_conf_check(self, vm_id, vm_name, vm_conf)-> bool:
@@ -222,11 +211,6 @@ class VNicCheck:
                 if assert_flag == 0:
                     return assert_flag
                 
-                # self.page_head_index.click('compute_button')
-                # # sleep(1)
-                # vm_name_button = self.vm_list_selector.ele_selection('vm_name_button', vm_name)
-                # vm_name_button.click()
-
             if vm_ip_dict['IPv4'] != [] and vm_ip_dict['IPv6'] != []:
                 self.logger.error(f'IP校验失败，虚拟机实际绑定IP多于配置IP，不在配置指定范围内的实际绑定IP：{vm_ip_dict}')
                 return 0
