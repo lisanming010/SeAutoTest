@@ -52,6 +52,7 @@ class NetTools:
                     break
 
         self.dvswitch_ele_action.click('detail_pgbackup')
+        sleep(0.5)
         return allocated_ip_rows
 
     def dvswitch_row_text(self, dvswitch_name, get_allocated_ip=False)-> dict:
@@ -76,6 +77,7 @@ class NetTools:
         # 已分配IP采集逻辑
         if get_allocated_ip:
             allocated_ip_dict = self.dvswitch_allocated_ip(dvswitch_name)
+            self.logger.debug(f'allocated_ip_dict:{allocated_ip_dict}')
 
         # 处理dvswitch_row列表，添加缺失的元素
         dvswitch_row[5] = '-' if dvswitch_row[5] == '' else dvswitch_row[5]

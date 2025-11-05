@@ -31,7 +31,8 @@ class EleAction:
         '''
         return self._ele_find_base_ele(ele, by, follow_path, find_list)
 
-    def ele_selection(self, ele_name: str, ele_replace='', page_local='', ele_kind = '', pgdown_selction='', find_list=False):
+    def ele_selection(self, ele_name: str, ele_replace='', page_local='', ele_kind = '',
+                      pgdown_selction='', pgdown_replace='', find_list=False):
         """
         元素选择器
 
@@ -67,15 +68,17 @@ class EleAction:
                     if ele_kind == 'list':
                         page_down_button = self._ele_find(page_name, pgdown_selction) #判断是否有分页控件
                     elif ele_kind == 'selector':
-                        page_down_button = self._ele_find('general_common', 'select_dropdown_pagination_pgdown')
+                        page_down_button = self._ele_find('general_common', 'select_dropdown_pagination_pgdown', replace_target=pgdown_replace)
                     elif ele_kind == 'popup':
-                        page_down_button = self._ele_find('general_common', 'popup_list_pgdown')
-                except:
+                        page_down_button = self._ele_find('general_common', 'popup_list_pgdown', )
+                except Exception as e:
                     self.driver.implicitly_wait(10)
+                    self.logger.error(f'except error:{e}')
                     raise not_fond_ele_target_option
                 else:
                     if 'ivu-page-disabled' in page_down_button.get_attribute('class'): #判断是否为最后一页
                         self.driver.implicitly_wait(10)
+                        self.logger.debug(f'已到最后一页')
                         raise not_fond_ele_target_option
                     else:
                         self.driver.implicitly_wait(3)
@@ -102,8 +105,9 @@ class EleAction:
         self.logger.info(f"click: {click_button}")
 
 
-    def dropdown_menu_select(self, selector, target_option, selector_replace='', target_option_repalce='',
-                              ele_kind='selector', sleep_time=1):
+    def dropdown_menu_select(self, selector, target_option, selector_replace='', 
+                            target_option_repalce='', pgdown_replace='', 
+                            ele_kind='selector', sleep_time=1):
         """
         下拉列表选择
 
@@ -111,17 +115,13 @@ class EleAction:
         :target_option: 选项名称，element_locating中option
         :ele_kind: 元素选择类型，可选 selector、popup
         """
-        if selector_replace != '':
-            selector_button = self.ele_selection(selector, selector_replace)
-        elif selector_replace == '':
-            selector_button = self.ele_selection(selector)
+        selector_button = self.ele_selection(selector, selector_replace)
         selector_button.click()
         sleep(sleep_time)
 
-        if target_option_repalce != '':
-            self.click(target_option, target_option_repalce, ele_kind=ele_kind)
-        elif target_option_repalce == '':
-            self.click(target_option, ele_kind=ele_kind)
+        target_button = self.ele_selection(target_option, target_option_repalce, pgdown_replace=pgdown_replace, ele_kind=ele_kind)
+        target_button.click()
+        
         
     def input_send(self, input, input_content, input_ele_repalce=''):
         """
@@ -142,7 +142,7 @@ class EleAction:
         action.perform()
         self.logger.info(f'click: {input} and send key: {input_content}')
 
-    def get_list_td_text(self, tbody_path:str, table_pgdown:str, tbody_path_replace='', drop_empty=True)->list:
+    def get_list_td_text(self, tbody_path:str, table_pgdown:str, tbody_path_replace='', pgdown_replace='', drop_empty=True)->list:
         '''
         获取列表中全部td的text值，返回列表，调用时需要tbody可定位
 
@@ -154,7 +154,7 @@ class EleAction:
         '''
 
         tbody_ele = self.ele_selection(tbody_path, tbody_path_replace)
-        pgdown_ele = self.ele_selection(table_pgdown)
+        pgdown_ele = self.ele_selection(table_pgdown, pgdown_replace)
         td_list = []
         while True:
             sleep(0.5)

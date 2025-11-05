@@ -84,7 +84,8 @@ class VNicCheck:
 
         ->{'d0:0d:44:3b:c7:89':{'防火墙': '<无>', '网卡状态': '已上线', 
           'IPv4地址': '192.168.2.100', 'IPv4子IP地址': '<空>', '掩码': '255.255.255.0', '网关': '192.168.2.254', 
-          '交换机': 'NAT交换机', '交换机微隔离': '未开启', 'IP地址检查': '已开启', '入站带宽限制': '20 Mbps', '出站带宽限制': '25 Mbps'},}
+          '交换机': 'NAT交换机', '交换机微隔离': '未开启', 'IP地址检查': '已开启', '入站带宽限制': '20 Mbps', '出站带宽限制': '25 Mbps', 
+          'IPv4子IP':[], 'IPv6子IP':[]},}
         '''
 
         vnic_overview_buttons = self.vmconf_details_selector.ele_selection('vnic_overview', ele_replace='网卡', find_list=True)
@@ -93,27 +94,102 @@ class VNicCheck:
             self.logger.debug(f'vnic_overview click')
         
         nic_detail_dict = {}
-        nic_detail_dict_tmp = {}
         for i in range(vnic_nums):
+            nic_detail_dict_tmp = {}
             vnic_name = f'网卡{i + 1}'
             vnic_detail = vmconf_details_selector.ele_selection('vnic_detail', ele_replace=vnic_name, find_list=True)
             mac_addr = ''
-            for i in vnic_detail:
-                key, value = i.text.split('\n')
+            for j in vnic_detail:
+                key, value = j.text.split('\n')
                 if '管理子IP' in value:
                     value, _ = value.split(' ')
                 if 'MAC地址' in key:
                     mac_addr = value
                 nic_detail_dict_tmp[key] = value
+
+            # 子IP采集
+            for ip_type in ['IPv4', 'IPv6']:
+                ip_sub = nic_detail_dict_tmp.get(f'{ip_type}子IP地址', None)
+                if ip_sub == None or ip_sub == '<空>':
+                    continue
+
+                replace_list = [vnic_name, f'{ip_type}子IP地址', f'管理{ip_type}子IP', f'{i+1}']
+
+                sub_ip_mgm_button = self.vmconf_details_selector.ele_selection('vnic_sub_ip_button', ele_replace=replace_list[:-2])
+                ActionChains(self.driver).move_to_element(sub_ip_mgm_button).click(sub_ip_mgm_button).perform()
+
+                ip_list = self.vmconf_details_selector.get_list_td_text('sub_ip_list', 'sub_ip_list_pgdown', tbody_path_replace=replace_list[2], pgdown_replace=replace_list[2])
+                ip_list = [ip[0] for ip in ip_list]
+                self.logger.debug(f'{ip_type}子IP：{ip_list}')
+                nic_detail_dict_tmp[f'{ip_type}子IP'] = ip_list
+
+                self.vmconf_details_selector.click('sub_ip_list_close', replace_list[2:])
+
             nic_detail_dict[mac_addr] = nic_detail_dict_tmp
         return nic_detail_dict
 
-    def ip_check_sw_side(slef, dvswitch_name):
+    def ip_check_sw_side(self, actual_vnic_conf:dict)->int:
         '''
         虚拟机IP和交换机侧校验，主要校验分配数量统计、ip分配记录
-        '''
-        pass
 
+        :dvswitch_name: 上行交换机名称
+        '''
+
+        assert_flag = 1
+        for mac, conf in actual_vnic_conf.items():
+            dvswitch_name = conf['交换机']
+
+            ntools = NetTools(self.driver, self.logger)
+            dvs_oerview, dvs_allocated_ip = ntools.dvswitch_row_text(dvswitch_name, True)
+            dvs_ip_pool = ntools.dvswitch_ip_pool(dvswitch_name)
+            self.logger.debug(f'dvs_oerview:{dvs_oerview}\ndvs_allocated_ip:{dvs_allocated_ip}\ndvs_ip_pool:{dvs_ip_pool}\nactual_vnic_conf:{actual_vnic_conf}')
+
+            dvs_ip_pool = [ip[0] for ip in dvs_ip_pool]
+
+            # 交换机已分配IP数量验证
+            self.logger.debug(f'dvs_ip_pool:{dvs_ip_pool}')
+            ip_num = {'IPv4':0, 'IPv6':0}
+            for ip in dvs_ip_pool:
+                if '.' in ip:
+                    ip_num['IPv4'] += 1
+                if ':' in ip:
+                    ip_num['IPv6'] += 1
+
+            # 申请主IP校验
+            ipv4_master_ip = conf['IPv4地址'] if conf['IPv4地址'] != '<空>' or conf['IPv4地址'] != '未开启'else ''
+            ipv6_master_ip = conf.get('IPv6地址', None)
+            ipv6_master_ip = ipv6_master_ip if ipv6_master_ip != '<空>' or ipv6_master_ip != None else ''
+
+            associated_vnic_mac = conf['MAC地址']
+            allocated_ip = dvs_allocated_ip.get(f'{associated_vnic_mac}', None)
+            if allocated_ip == None:
+                self.logger.error(f'交换机侧申请IP校验错误, {associated_vnic_mac}不在已连接设备列表中')
+                return 0
+            
+            if ipv4_master_ip != allocated_ip[2]:
+                self.logger.error(f'网卡绑定IP校验失败，网卡侧IP：{ipv4_master_ip}，交换机侧：{allocated_ip[2]}')
+                return 0
+            if ipv6_master_ip != allocated_ip[3]:
+                self.logger.error(f'网卡绑定IP校验失败，网卡侧IP：{ipv6_master_ip}，交换机侧：{allocated_ip[3]}')
+                return 0
+            
+            # 启用DHCPv4时校验逻辑
+            for ip_type in ['IPv4', 'IPv6']:
+                if dvs_oerview[f'dvswitch_{ip_type}_seg'] != '-':
+                    if str(ip_num[ip_type]) != dvs_oerview[f'dvswitch_{ip_type}_usage'].split('/')[0]:
+                        self.logger.error(f'交换机分配IP数量统计不正确,实际统计数量：{ip_num[ip_type]},采集交换机分配数量值：{dvs_oerview[f"dvswitch_{ip_type}_usage"]}')
+                        return 0
+                    
+                    sub_ip_list = conf.get(f'{ip_type}子IP', None)
+                    sub_ip_list = sub_ip_list if sub_ip_list != None or sub_ip_list != '<空>' else ''
+                    # ipv4子IP存在时进入校验流程，校验所有子IP是否在IP交换机IP池列表中
+                    if sub_ip_list != '':
+                        sub_ip_list_diff = list(set(sub_ip_list) - set(dvs_ip_pool))
+                        if sub_ip_list_diff != []:
+                            self.logger.error(f'子IP：{sub_ip_list_diff}不在交换机IP池列表中')
+                            return 0
+        return assert_flag
+    
     def vm_list_ip_check(self, actual_ip_dict:dict, vnic_conf:dict):
         """
         虚拟机IP和配置文件间校验
@@ -131,6 +207,56 @@ class VNicCheck:
         # 仅校验IP
         assert_flag, actual_diff_ip_dict = nettool.ip_match(actual_ip_dict, ip_except_dict)
         return assert_flag, actual_diff_ip_dict
+
+    def vnic_conf_validation(self, vnic_conf, nic_detail_dict)->int:
+        '''
+        虚拟机网卡除IP外其余配置项校验
+
+        :vnic_conf: 网卡配置文件
+        :nic_detail_dict: 网卡实际捕获配置字典，vm_assert_check.get_vnic_all_conf 方法返回
+
+        ->assert_flag
+        '''
+
+        assert_flag = 1
+        mac_conf = vnic_conf['mac_addr']
+        vnic_actual_setting = nic_detail_dict.get(mac_conf, None)
+        if vnic_actual_setting == None:
+            self.logger.error(f'mac校验失败，虚拟机网卡无期望mac配置，期望mac：{mac_conf}')
+            return 0
+        
+        conf_uplink_name = OtherTools.replace_str_extraction(vnic_conf['uplink_switch_name'])
+        if not self.otools.match_vaildtion('上行交换机', conf_uplink_name, vnic_actual_setting.get('交换机', None)):
+            return 0
+        
+        vnic_conf_fire_wall_name = '无' if vnic_conf['firewall_name'] == '' else OtherTools.replace_str_extraction(vnic_conf['firewall_name'])
+        assert_flag = self.otools.match_vaildtion('防火墙', vnic_conf_fire_wall_name, 
+                                                    OtherTools.replace_str_extraction(vnic_actual_setting['防火墙']))
+        if not assert_flag:
+            return assert_flag
+
+        vnic_is_online = '已上线' if vnic_conf['is_online'] else '已下线'
+        if not self.otools.match_vaildtion('网卡状态', vnic_is_online, vnic_actual_setting['网卡状态']):
+            return 0
+        
+        if not self.otools.match_vaildtion('上行交换机', OtherTools.replace_str_extraction(vnic_conf['uplink_switch_name']),
+                                            vnic_actual_setting['交换机']):
+            return 0
+
+        vnic_is_use_ipcheck = '已开启' if vnic_conf['is_ipcheck'] else '未开启'
+        if not self.otools.match_vaildtion('是否启用IP地址检查', vnic_is_use_ipcheck, vnic_actual_setting['IP地址检查']):
+            return 0
+        
+        vnic_in_bandwidth = '不启用' if vnic_conf['in_bandwidth'] == '' else vnic_conf['in_bandwidth'].split(' ')[0]
+        if not self.otools.match_vaildtion('入站带宽限制', vnic_in_bandwidth, vnic_actual_setting['入站带宽限制']):
+            return 0
+        
+        vnic_out_bandwidth = '不启用' if vnic_conf['out_bandwidth'] == '' else vnic_conf['out_bandwidth'].split(' ')[0]
+        if not self.otools.match_vaildtion('出站带宽限制', vnic_out_bandwidth, vnic_actual_setting['出站带宽限制']):
+            return 0
+        
+        return assert_flag
+                
 
     def vnic_conf_check(self, vm_id, vm_name, vm_conf)-> bool:
         '''
@@ -164,57 +290,31 @@ class VNicCheck:
         elif curr_vnic_num == vnic_num:
             # 获取当前网卡除子IP外的全部配置项
             nic_detail_dict = self.get_vnic_all_conf(vnic_num, self.vmconf_details_selector)
-            self.logger.debug(nic_detail_dict)
+            self.logger.debug(f'nic_detail_dict:{nic_detail_dict}')
+            vm_ip_dict_tmp = vm_ip_dict
 
             for i in range(vnic_num):
                 vnic_name_conf = f'vm_nic{i+1}'
                 vnic_conf = vm_conf[vnic_name_conf]
 
-                mac_conf = vnic_conf['mac_addr']
-                vnic_actual_setting = nic_detail_dict.get(mac_conf, None)
-                if vnic_actual_setting == None:
-                    self.logger.error(f'mac校验失败，虚拟机网卡无期望mac配置，期望mac：{mac_conf}')
-                    return 0
-                
-                conf_uplink_name = OtherTools.replace_str_extraction(vnic_conf['uplink_switch_name'])
-                if not self.otools.match_vaildtion('上行交换机', conf_uplink_name, vnic_actual_setting.get('交换机', None)):
-                    return 0
-                
-                vnic_conf_fire_wall_name = '无' if vnic_conf['firewall_name'] == '' else OtherTools.replace_str_extraction(vnic_conf['firewall_name'])
-                assert_flag = self.otools.match_vaildtion('防火墙', vnic_conf_fire_wall_name, 
-                                                            OtherTools.replace_str_extraction(vnic_actual_setting['防火墙']))
-                if not assert_flag:
-                    return assert_flag
-
-                vnic_is_online = '已上线' if vnic_conf['is_online'] else '已下线'
-                if not self.otools.match_vaildtion('网卡状态', vnic_is_online, vnic_actual_setting['网卡状态']):
-                    return 0
-                
-                if not self.otools.match_vaildtion('上行交换机', OtherTools.replace_str_extraction(vnic_conf['uplink_switch_name']),
-                                                    vnic_actual_setting['交换机']):
-                    return 0
-
-                vnic_is_use_ipcheck = '已开启' if vnic_conf['is_ipcheck'] else '未开启'
-                if not self.otools.match_vaildtion('是否启用IP地址检查', vnic_is_use_ipcheck, vnic_actual_setting['IP地址检查']):
-                    return 0
-                
-                vnic_in_bandwidth = '不启用' if vnic_conf['in_bandwidth'] == '' else vnic_conf['in_bandwidth'].split(' ')[0]
-                if not self.otools.match_vaildtion('入站带宽限制', vnic_in_bandwidth, vnic_actual_setting['入站带宽限制']):
-                    return 0
-                
-                vnic_out_bandwidth = '不启用' if vnic_conf['out_bandwidth'] == '' else vnic_conf['out_bandwidth'].split(' ')[0]
-                if not self.otools.match_vaildtion('出站带宽限制', vnic_out_bandwidth, vnic_actual_setting['出站带宽限制']):
+                assert_flag = self.vnic_conf_validation(vnic_conf, nic_detail_dict)
+                if assert_flag == 0:
                     return 0
                 
                 # IP校验整体校验，校验全部网卡是否与指定IP一致
-                assert_flag, vm_ip_dict = self.vm_list_ip_check(vm_ip_dict, vnic_conf)  
+                assert_flag, vm_ip_dict_tmp = self.vm_list_ip_check(vm_ip_dict_tmp, vnic_conf)  
                 if assert_flag == 0:
                     return assert_flag
                 
-            if vm_ip_dict['IPv4'] != [] and vm_ip_dict['IPv6'] != []:
-                self.logger.error(f'IP校验失败，虚拟机实际绑定IP多于配置IP，不在配置指定范围内的实际绑定IP：{vm_ip_dict}')
+            if vm_ip_dict_tmp['IPv4'] != [] and vm_ip_dict['IPv6'] != []:
+                self.logger.error(f'IP校验失败，虚拟机实际绑定IP多于配置IP，不在配置指定范围内的实际绑定IP：{vm_ip_dict_tmp}')
                 return 0
-              
+            
+            self.vmconf_details_selector.click('step_back')
+            # 交换机侧联动校验
+            assert_flag = self.ip_check_sw_side(nic_detail_dict)
+            if assert_flag == 0:
+                return 0
         return 1   
 
 class AssertCheck:
