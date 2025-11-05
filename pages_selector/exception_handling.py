@@ -1,4 +1,5 @@
 import configparser
+import selenium.common.exceptions as seEception
 from functools import wraps
 
 def ele_selector_exception_handing(func):
@@ -23,6 +24,10 @@ def ele_selector_exception_handing(func):
             logger.error(f"捕获错误：{e}")
             raise e
         else:
+            # find_elements 定位不到元素时返回空白列表而不会抛出错误，为与后续逻辑兼容手动抛出NoSuchElementException
+            if ele_selector == []:
+                logger.error(f'find_elements返回列表为空，未定位到元素！')
+                raise seEception.NoSuchElementException
             logger.info(f"{ele_name}: 元素定位成功！")
             return ele_selector
     return wrapper

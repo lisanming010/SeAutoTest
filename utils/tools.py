@@ -1,14 +1,61 @@
 from utils.ele_action import EleAction
 from pages_selector.find_element import FindEles
 from config import cfg_global
+from time import sleep
+from selenium.webdriver.common.by import By
 import ipaddress, re, os, time
+import selenium.common.exceptions as seEception
 
 class NetTools:
     def __init__(self, driver, logger):
         self.driver = driver
         self.logger = logger
 
-    def dvswitch_row_text(self, dvswitch_name)-> dict:
+        self.find_ele = FindEles(driver, logger)
+        self.menu_ele_action = EleAction(driver, self.find_ele, 'page_head_index', logger)
+        self.second_menu_action = EleAction(driver, self.find_ele, 'second_head_index', logger)
+        self.dvswitch_ele_action = EleAction(driver, self.find_ele, 'dvswitch', logger)
+
+    def dvswitch_ip_pool(self, dvswitch_name:str)->list:
+        '''
+        分布式交换机IP池列表获取
+
+        :dvswitch_name: 分布式交换机名称
+        ->[tr[td,td],]
+        '''
+
+        dvswitch_name_ele = self.dvswitch_ele_action.ele_selection('dvswitch_name', dvswitch_name, pgdown_selction='dvswitch_list_pgdown', ele_kind='list')
+        dvswitch_name_ele.click()
+        self.dvswitch_ele_action.click('ip_list_button')
+
+        td_list = self.dvswitch_ele_action.get_list_td_text('ip_list_tbody', 'ip_list_pgdown')
+        self.dvswitch_ele_action.click('detail_pgbackup')
+        return td_list
+
+
+    def dvswitch_allocated_ip(self, dvswitch_name:str)->dict:
+        '''
+        分布式交换机已分配IP列表信息采集方法
+
+        :dvswitch_name: 分布式交换机名称
+        ->dict {mac:[vnicID, nicMac, ipv4, ipv6, vmName, updateTime]}
+        '''
+        dvswitch_name_ele = self.dvswitch_ele_action.ele_selection('dvswitch_name', dvswitch_name, pgdown_selction='dvswitch_list_pgdown', ele_kind='list')
+        dvswitch_name_ele.click()
+
+        allocated_ip_rows = {}
+        td_list = self.dvswitch_ele_action.get_list_td_text('allocated_ip_tbody', 'allocated_ip_list_pgdown')
+        for tr in td_list:
+            for td in tr:
+                if 'd0:0d' in td:
+                    allocated_ip_rows[td] = tr
+                    break
+
+        self.dvswitch_ele_action.click('detail_pgbackup')
+        sleep(0.5)
+        return allocated_ip_rows
+
+    def dvswitch_row_text(self, dvswitch_name, get_allocated_ip=False)-> dict:
         '''
         获取分布式交换机列表中指定行显示列的text
         默认元素为：分布式交换机ID、名称、类型、网络类型、VLAN、IPv4网段、IPv4使用情况、IPv6网段、IPv6使用情况
@@ -16,30 +63,30 @@ class NetTools:
         
         :dvswitch_name: 分布式交换机名称
         '''
-        find_ele = FindEles(self.driver, self.logger)
+        self.menu_ele_action.click('network_button')
+        self.second_menu_action.click('button', '分布式交换机')
 
-        menu_ele_action = EleAction(self.driver, find_ele, 'page_head_index', self.logger)
-        menu_ele_action.click('network_button')
-        second_menu_action = EleAction(self.driver, find_ele, 'second_head_index', self.logger)
-        second_menu_action.click('button', '分布式交换机')
+        dvswitch_row_ele = self.dvswitch_ele_action.ele_selection('dvswitch_id', dvswitch_name, ele_kind='list', pgdown_selction='dvswitch_list_pgdown', find_list=True)
+        self.logger.debug(f'dvswitch_row_ele:{dvswitch_row_ele}')
+        dvswitch_row = [x.text if x.text!='' else '-' for x in dvswitch_row_ele]
+        self.logger.debug(f'dvswitch_row:{dvswitch_row}')
+        dvswitch_row.pop(0)
+        dvswitch_row.pop(-1)
 
-        dv_switch_ele_action = EleAction(self.driver, find_ele, 'dvswitch', self.logger)
-        dvswitch_row = dv_switch_ele_action.ele_selection('dvswitch_id', dvswitch_name, ele_kind='list').text.strip().split('\n')
-        dvswitch_uplink = dvswitch_row[-2]
-        dvswitch_create_time = dvswitch_row[-1]
+        allocated_ip_dict = {}
+        # 已分配IP采集逻辑
+        if get_allocated_ip:
+            allocated_ip_dict = self.dvswitch_allocated_ip(dvswitch_name)
+            self.logger.debug(f'allocated_ip_dict:{allocated_ip_dict}')
+
         # 处理dvswitch_row列表，添加缺失的元素
-        if dvswitch_row[5] == '-':
-            dvswitch_row.insert(5, '-')
-        if dvswitch_row[6] == '-':
-            dvswitch_row.insert(7, '-')
-        if dvswitch_row[8] == '-':
-            dvswitch_row.insert(8, '-')
-        
-        # 其余字段无法确定相对位置，直接丢弃重新插入
-        dvswitch_row = dvswitch_row[:10]
-
-        dvswitch_row.append(dvswitch_uplink)
-        dvswitch_row.append(dvswitch_create_time)
+        dvswitch_row[5] = '-' if dvswitch_row[5] == '' else dvswitch_row[5]
+        dvswitch_row[7] = '-' if dvswitch_row[7] == '' else dvswitch_row[7]
+        if dvswitch_row[6] != '-':
+            dvswitch_row[6], ip_use_rate = dvswitch_row[6].split('\n')
+        else:
+            ip_use_rate = '-'
+        dvswitch_row.insert(7, ip_use_rate)
 
         dvswitch_row_dict = {
             'dvswitch_id': dvswitch_row[0],
@@ -56,7 +103,7 @@ class NetTools:
             'dvswitch_create_time': dvswitch_row[11]
         }
         
-        return dvswitch_row_dict
+        return dvswitch_row_dict, allocated_ip_dict
     
     @staticmethod
     def ip_handle(ip_type, ip_str)-> list:
