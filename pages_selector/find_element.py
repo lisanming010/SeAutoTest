@@ -2,6 +2,8 @@ import os
 from selenium.webdriver.common.by import By
 from pages_selector import exception_handling
 from utils.confing_handle import HandleConfig
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 class FindEles:
     def __init__(self, driver, logger):

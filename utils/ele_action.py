@@ -101,7 +101,7 @@ class EleAction:
             button = self.ele_selection(click_button, click_button_replace, ele_kind=ele_kind)
 
         self.logger.info(button)
-        ActionChains(self.driver).click(button).perform()
+        ActionChains(self.driver).move_to_element(button).click(button).perform()
         self.logger.info(f"click: {click_button}")
 
 
@@ -137,7 +137,7 @@ class EleAction:
 
         # input_ele.clear() #部分组件无法清空，如创建虚拟机数量
         action = ActionChains(self.driver)
-        action.click(input_ele).key_down(Keys.CONTROL).send_keys('a').key_up(Keys.CONTROL).send_keys(Keys.DELETE) #清空输入框原有内容
+        action.move_to_element(input_ele).click(input_ele).key_down(Keys.CONTROL).send_keys('a').key_up(Keys.CONTROL).send_keys(Keys.DELETE) #清空输入框原有内容
         action.send_keys(input_content)
         action.perform()
         self.logger.info(f'click: {input} and send key: {input_content}')

@@ -173,13 +173,55 @@ def create_vm(request, login_driver):
         ele_action.click('cpu_conf_advanced')
         ele_action.dropdown_menu_select('cpu_conf_socket_num_selector', 'cpu_conf_socket_num', 
                                         target_option_repalce=cpu_soket_num)
+    
+    # cpu绑核设置
+    is_bind_core = vm_create_conf['is_bind_core']
+    if is_bind_core:
+        core_map = vm_create_conf['core_map']
+        cpu_bind_core_switch = ele_action.ele_selection('cpu_bind_core_switch')
+        cpu_bind_core_switch_class = cpu_bind_core_switch.get_attribute('class')
+        if 'ivu-switch-checked' in cpu_bind_core_switch_class or 'ivu-switch-disabled' in cpu_bind_core_switch_class:
+            pass
+        else:
+            # cpu绑核控件点击
+            cpu_bind_core_switch.click()
+            ele_action.click('cpu_bind_core_setting')
+
+            # 遍历核心，每个核心执行绑核
+            for core_num in range(int(cpu_core_num)):
+                vcpu_map = core_map.get(str(core_num), None)
+                if vcpu_map == None:
+                    continue
+                
+                # 点击pcpu选择控件
+                pcpu_select_button = ele_action.ele_selection('pcpu_select_button', str(core_num + 1)) 
+                pcpu_select_button.click()
+                sleep(0.5)
+                # cpu绑核map解析
+                for numa, cores in vcpu_map.items():
+                    numa_index = numa.split(' ')[-1]
+                    for core_index in cores:
+                        # 前端元素缺少是否展开标志位，所以第一次未捕获到check_box时尝试点击列表展开，展开后仍为捕获到则抛出异常
+                        for loop_time in range(1):
+                            try:
+                                numa_core_check_box = ele_action.ele_selection('numa_core_check_box', ele_replace=[numa_index, str(core_index)], find_list=True)
+                                numa_core_check_box[-1].click()
+                            except seEception.NoSuchElementException as e:
+                                if loop_time == 0:
+                                    ele_action.click('numa_core_check_box_expand', numa_index)
+                                    sleep(0.5)
+                                else:
+                                    raise e
+                pcpu_select_button.click()
+            ele_action.click('cpu_bind_core_setting_close')
+            sleep(0.5)
 
     # 内存配置
     memory_size = vm_create_conf['memory_size']
     if memory_size != '':
         ele_action.click('memory_conf_button')
-        ele_action.input_send('memory_conf_input', memory_size)
-    
+        ele_action.input_send('memory_conf_input', memory_size)      
+
     # 磁盘配置
     disk_nums = vm_create_conf['vm_disk_num']
     if disk_nums > 0:
@@ -218,7 +260,6 @@ def create_vm(request, login_driver):
                                                     selector_replace=vnic_order,
                                                     target_option_repalce=[vnic_conf['uplink_switch_name'], vnic_order],
                                                     pgdown_replace=vnic_order)
-                    # ele_action.click('vmnic_conf_uplink_selector_after_click', vnic_order)
                 
                 #mac地址配置
                 if vnic_conf['mac_addr'] != '':
@@ -304,7 +345,3 @@ def create_vm(request, login_driver):
     sleep(5)
     
     return driver, logger, vm_create_conf
-
-@pytest.fixture()
-def vm_hw_conf_check():
-    pass

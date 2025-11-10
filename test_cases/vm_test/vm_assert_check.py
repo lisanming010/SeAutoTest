@@ -317,6 +317,11 @@ class VNicCheck:
                 return 0
         return 1   
 
+class StorageCheck:
+    def __init__(self, driver, logger):
+        self.driver = driver
+        self.logger = logger
+
 class AssertCheck:
     def __init__(self, driver, logger, vm_conf: dict):
         '''
