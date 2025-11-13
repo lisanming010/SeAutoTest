@@ -12,16 +12,16 @@ def ele_selector_exception_handing(func):
         try:
             ele_selector, ele_name = func(*args, **kwargs)
         except FileNotFoundError as e:
-            logger.error(f"文件不存在：{e}")
+            logger.error(f"文件不存在:\n{e}")
             raise e
         except configparser.NoSectionError as e:
-            logger.error(f"配置文件读取失败：{e}")
+            logger.error(f"配置文件读取失败：\n{e}")
             raise e
         except configparser.NoOptionError as e:
-            logger.error(f"配置文件读取失败：{e}")
+            logger.error(f"配置文件读取失败：\n{e}")
             raise e
         except Exception as e:
-            logger.error(f"捕获错误：{e}")
+            logger.error(f"定位失败，捕获错误：\n{e}")
             raise e
         else:
             # find_elements 定位不到元素时返回空白列表而不会抛出错误，为与后续逻辑兼容手动抛出NoSuchElementException

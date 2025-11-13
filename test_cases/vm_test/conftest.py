@@ -36,7 +36,7 @@ def _ip_settig(vnic_conf: dict, ele_action: EleAction, vnic_order: int, logger):
                 logger.warning('未找到元素：IPv6启用开关，或系统未启用IPv6开关')
                 break
             else:
-                raise
+                raise RuntimeError('未找到元素：IPv4/IPv6启用框')
         if vnic_conf[f'is_use_{ip_type}'] == True:   
             if 'ivu-switch-checked' not in is_use_switch.get_attribute('class'):
                 is_use_switch.click()
@@ -59,7 +59,8 @@ def _ip_settig(vnic_conf: dict, ele_action: EleAction, vnic_order: int, logger):
                 if 'ivu-input-disabled' not in ele_action.ele_selection('vmnic_ip_conf_gateway_input', replace_list).get_attribute('class'):
                     ele_action.input_send('vmnic_ip_conf_gateway_input', vnic_conf[f'{ip_type}_gateway'], replace_list)
 
-            subip_type = _vmnic_conf_struct[f'{ip_type}_subip'] #子IP配置
+            # 子IP配置
+            subip_type = _vmnic_conf_struct[f'{ip_type}_subip'] 
             if vnic_conf[f'{ip_type}_subip_is_use']:
                 replace_list = [subip_type, vnic_order]
                 ele_action.click('vmnic_subip_checkbox', replace_list)
@@ -71,10 +72,11 @@ def _ip_settig(vnic_conf: dict, ele_action: EleAction, vnic_order: int, logger):
                     replace_list = [subip_type, vnic_order]
                     try:
                         ele_action.click('vmnic_subip_appoint_radio', replace_list)
-                    except seEception.NoSuchElementException:
+                    except seEception.TimeoutException:
                         # 连接到不启用DHCP的交换机时选择启用子IP时无IP方式设置
                         pass
                     ele_action.input_send('vmnic_subip_appoint_input', vnic_conf[f'{ip_type}_subip_appoint_addr'], replace_list)
+                    # sleep(10)
         elif vnic_conf[f'is_use_{ip_type}'] == False and 'ivu-switch-checked' in is_use_switch.get_attribute('class'):
             is_use_switch.click()
 
@@ -292,6 +294,9 @@ def create_vm(request, login_driver):
                 #出入站带宽限制
                 if vnic_conf['in_bandwidth'] != '':
                     ele_action.click('vmnic_conf_in_bandwidth_checkbox', vnic_order)
+                    # ele_action.click('vmnic_conf_in_bandwidth_checkbox')
+                    # vnic_bandwidth_checkbox = ele_action.ele_selection('vmnic_conf_in_bandwidth_checkbox', vnic_order)
+                    # vnic_bandwidth_checkbox.click()
                     ele_action.input_send('vmnic_conf_in_bandwidth_input', vnic_conf['in_bandwidth'], vnic_order)
                 if vnic_conf['out_bandwidth'] != '':
                     ele_action.click('vmnic_conf_out_bandwidth_checkbox', vnic_order)

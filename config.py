@@ -8,5 +8,9 @@ GLOBAL_CONFIG_PATH = Path(os.getenv("GLOBAL_SETTIGN_CONFIG_PATH", GLOBAL_SETTING
 PYTEST_SETTING_FILE = 'pytest.ini'
 PYTEST_CONFIG_PATH = Path(os.getenv("PYTEST_SETTIGN_CONFIG_PATH", PYTEST_SETTING_FILE)).expanduser().resolve()
 
+ELE_LOCATION_FILE = Path('pages_selector', 'element_locating.ini')
+ELE_CONFIG_PATH = Path(os.getenv("ELE_CONFIG_PATH", ELE_LOCATION_FILE)).expanduser().resolve()
+
 cfg_global = HandleConfig(GLOBAL_CONFIG_PATH)
 cfg_pytest = HandleConfig(PYTEST_CONFIG_PATH)
+cfg_ele_location = HandleConfig(ELE_CONFIG_PATH)
