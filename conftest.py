@@ -33,7 +33,7 @@ def driver_init():
     edge_options.add_experimental_option('excludeSwitches', ['enable-logging'])
     
     _driver = webdriver.Edge(options=edge_options)
-    _driver.implicitly_wait(10)
+    # _driver.implicitly_wait(10)
     _driver.maximize_window()
     _logger.info("WebDriver初始化成功！")
 
